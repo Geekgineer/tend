@@ -1,0 +1,39 @@
+// tend's macOS folder window (JXA, run by `osascript -l JavaScript`), one per Choose….
+// Protocol: prints "ready"; reads one stdin line (the start folder), shows the panel, prints the chosen folder
+// or an empty line on cancel, and exits.
+ObjC.import('AppKit');
+ObjC.import('stdlib');
+const app = $.NSApplication.sharedApplication;
+app.setActivationPolicy($.NSApplicationActivationPolicyAccessory); // no Dock icon
+const make = () => {
+  const p = $.NSOpenPanel.openPanel;
+  p.canChooseDirectories = true;
+  p.canChooseFiles = false;
+  p.allowsMultipleSelection = false;
+  p.canCreateDirectories = true;
+  p.message = 'Choose a folder for the new session';
+  p.prompt = 'Choose';
+  // show on the Space you're on, even over a full-screen browser (else it opens on another desktop, unseen)
+  p.collectionBehavior = (1 << 1) | (1 << 8); // MoveToActiveSpace | FullScreenAuxiliary
+  return p;
+};
+const panel = make();
+const stdin = $.NSFileHandle.fileHandleWithStandardInput;
+const out = $.NSFileHandle.fileHandleWithStandardOutput;
+const say = (s) => out.writeData($(s + '\n').dataUsingEncoding($.NSUTF8StringEncoding));
+say('ready');
+// one window per process: answer once, then exit. A helper left running after its window closed stayed the
+// active app without handling events, so macOS showed the spinning cursor and swallowed the user's clicks.
+const d = stdin.availableData;
+if (d.length > 0) {
+  const start = $.NSString.alloc.initWithDataEncoding(d, $.NSUTF8StringEncoding).js.trim();
+  if (start) panel.directoryURL = $.NSURL.fileURLWithPath(start);
+  app.activateIgnoringOtherApps(true);
+  for (const sel of ['center', 'orderFrontRegardless']) {
+    panel.performSelectorWithObjectAfterDelayInModes(sel, null, 0.15, $([$.NSModalPanelRunLoopMode]));
+  }
+  const ok = panel.runModal == $.NSModalResponseOK;
+  say(ok ? panel.URL.path.js : '');
+}
+app.hide(null); // hand focus back before exiting
+$.exit(0);

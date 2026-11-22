@@ -1,0 +1,18 @@
+{
+  "session_id": "00000000-0000-0000-0000-000000000000",
+  "transcript_path": "/HOME/.claude/projects/-HOME-x/00000000-0000-0000-0000-000000000000.jsonl",
+  "cwd": "/REPO",
+  "scratchpad_dir": "/REPO",
+  "prompt_id": "00000000-0000-0000-0000-000000000000",
+  "permission_mode": "plan",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "ToolSearch",
+  "tool_input": {
+    "query": "select:ExitPlanMode",
+    "max_results": 1
+  },
+  "tool_use_id": "toolu_01WabMcsVGWdxdJZugqPyGQ6"
+}

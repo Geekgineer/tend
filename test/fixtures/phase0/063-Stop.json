@@ -1,0 +1,16 @@
+{
+  "session_id": "00000000-0000-0000-0000-000000000000",
+  "transcript_path": "/HOME/.claude/projects/-REPO/00000000-0000-0000-0000-000000000000.jsonl",
+  "cwd": "/REPO",
+  "scratchpad_dir": "/REPO",
+  "prompt_id": "00000000-0000-0000-0000-000000000000",
+  "permission_mode": "default",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "Stop",
+  "stop_hook_active": false,
+  "last_assistant_message": "I couldn't describe it: `.tend/attachments/shot.png` doesn't exist under the working directory (`spike-repo`). Can you confirm the path, or tell me where the image is?",
+  "background_tasks": [],
+  "session_crons": []
+}

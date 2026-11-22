@@ -1,0 +1,10 @@
+{
+  "session_id": "00000000-0000-0000-0000-000000000000",
+  "transcript_path": "/HOME/.claude/projects/-HOME-x/00000000-0000-0000-0000-000000000000.jsonl",
+  "cwd": "/REPO",
+  "scratchpad_dir": "/REPO",
+  "prompt_id": "00000000-0000-0000-0000-000000000000",
+  "permission_mode": "auto",
+  "hook_event_name": "UserPromptSubmit",
+  "prompt": "Create auto.txt containing auto, then run: ls -la, then run: rm auto.txt. Keep replies short."
+}

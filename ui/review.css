@@ -1,0 +1,177 @@
+/* The Review tab: a PR-style file review beside (or instead of) the terminal. Uses styles.css tokens. */
+:root {
+  --add-bg:rgba(43,154,108,.10); --add-hl:rgba(43,154,108,.28); --add-fg:#1f7a54;
+  --del-bg:rgba(196,55,44,.08); --del-hl:rgba(196,55,44,.24); --del-fg:#b0322a;
+  --gut:#a6a8ae; --code:#24292f;
+  --hl-kw:#cf222e; --hl-str:#0a3069; --hl-num:#0550ae; --hl-fn:#8250df; --hl-com:#6e7781; --hl-type:#953800; --hl-attr:#0550ae; --hl-meta:#116329;
+}
+@media (prefers-color-scheme:dark) { :root:not([data-theme="light"]) {
+  --add-bg:rgba(78,199,155,.10); --add-hl:rgba(78,199,155,.30); --add-fg:#5fd3a8;
+  --del-bg:rgba(239,106,94,.09); --del-hl:rgba(239,106,94,.28); --del-fg:#f08377;
+  --gut:#4b515b; --code:#d5d8de;
+  --hl-kw:#ff7b72; --hl-str:#a5d6ff; --hl-num:#79c0ff; --hl-fn:#d2a8ff; --hl-com:#8b949e; --hl-type:#ffa657; --hl-attr:#79c0ff; --hl-meta:#7ee787;
+} }
+:root[data-theme="dark"] {
+  --add-bg:rgba(78,199,155,.10); --add-hl:rgba(78,199,155,.30); --add-fg:#5fd3a8;
+  --del-bg:rgba(239,106,94,.09); --del-hl:rgba(239,106,94,.28); --del-fg:#f08377;
+  --gut:#4b515b; --code:#d5d8de;
+  --hl-kw:#ff7b72; --hl-str:#a5d6ff; --hl-num:#79c0ff; --hl-fn:#d2a8ff; --hl-com:#8b949e; --hl-type:#ffa657; --hl-attr:#79c0ff; --hl-meta:#7ee787;
+}
+
+/* ---------- tabs and layout ---------- */
+.dtabs { flex:none }
+.dtabs button { height:24px }
+.work { display:flex; min-height:0; min-width:0; position:relative }
+.work > .term.behind { position:absolute; inset:0; visibility:hidden; pointer-events:none }
+.work > .term { flex:1; min-width:0 }
+.work > .review { flex:1; min-width:0; min-height:0; display:grid; grid-template-columns:clamp(220px,22%,320px) minmax(0,1fr); position:relative; overflow:hidden }
+.work.pinned > .term { flex:0 0 clamp(420px,34%,640px); border-left:1px solid var(--line) }
+
+/* ---------- side: file tree ---------- */
+.rvside { display:grid; grid-template-rows:auto auto minmax(0,1fr); min-height:0; background:var(--pane); border-right:1px solid var(--line) }
+.rvtop { display:flex; flex-direction:column; gap:8px; padding:10px 10px 8px }
+.rvtop .seg button { flex:1; justify-content:center }
+.rvfilter { height:28px; padding:0 10px; border:1px solid var(--line); border-radius:7px; background:var(--bg); color:var(--fg); font:12.5px var(--sans); outline:none }
+.rvfilter:focus { border-color:var(--line2); box-shadow:0 0 0 3px color-mix(in srgb,var(--fg) 8%,transparent) }
+.rvprog { display:flex; align-items:center; gap:8px; padding:0 12px 8px; font-size:11.5px; color:var(--fg3) }
+.rvprog .track { flex:1; height:4px; border-radius:2px; background:var(--line); position:relative; overflow:hidden }
+.rvprog .track::after { content:""; position:absolute; inset:0 auto 0 0; width:var(--p,0%); background:var(--work); border-radius:2px; transition:width .25s ease }
+.rvtree { overflow:auto; padding:2px 6px 12px; font-size:12.5px }
+.rvrow { display:flex; align-items:center; gap:6px; height:26px; padding:0 8px 0 calc(8px + var(--d,0) * 14px); border-radius:6px; color:var(--fg2); cursor:pointer; white-space:nowrap; user-select:none }
+.rvrow:hover { background:var(--hover); color:var(--fg) }
+.rvrow.on { background:var(--sel); color:var(--fg) }
+.rvrow .tw { width:10px; height:10px; flex:none; position:relative; color:transparent; overflow:hidden }
+.rvrow .tw::before { content:""; position:absolute; left:2px; top:2px; width:5px; height:5px; border-right:1.5px solid var(--fg3); border-bottom:1.5px solid var(--fg3); transform:rotate(-45deg); transition:transform .12s ease }
+.rvrow[aria-expanded="true"] .tw::before { transform:rotate(45deg); top:1px }
+.rvrow .nm { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis }
+.rvrow .nm.gone { text-decoration:line-through; color:var(--fg3) }
+.rvrow.dir .nm { color:var(--fg2) }
+.rvrow .ct { font-size:11px; color:var(--fg3) }
+.rvrow .ic { width:8px; height:8px; border-radius:2px; flex:none; background:var(--idle) }
+.rvrow .ic.md { background:#5b8def } .rvrow .ic.ts { background:#3178c6 } .rvrow .ic.js { background:#e2b93b } .rvrow .ic.code { background:#a371f7 }
+.rvrow .ic.cfg { background:#8b949e } .rvrow .ic.web { background:#e5734a } .rvrow .ic.img { background:#3fb6a8 }
+.rvrow .meta { display:flex; gap:5px; align-items:center; font:11px var(--mono) }
+.rvrow .meta .a { color:var(--add-fg) } .rvrow .meta .d { color:var(--del-fg) }
+.rvrow .st { width:14px; text-align:center; font-weight:600; border-radius:3px }
+.rvrow .stA { color:var(--add-fg) } .rvrow .stM { color:var(--need) } .rvrow .stD { color:var(--del-fg) }
+.rvrow.seen .nm { color:var(--fg3) }
+.rvrow.seen .st::after { content:"✓"; margin-left:4px; color:var(--work) }
+
+/* ---------- main: bar, body, footer ---------- */
+.rvmain { display:grid; grid-template-rows:auto minmax(0,1fr) auto; min-width:0; min-height:0 }
+.rvbar { display:flex; align-items:center; gap:8px; min-height:42px; padding:6px 12px; border-bottom:1px solid var(--line); row-gap:6px }
+.rvbar > * { flex:none } .rvbar > .rvpath { flex:0 1 auto }
+.rvbar .sp { flex:1 }
+.rvpath { font:12.5px var(--mono); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:ltr }
+.rvpath .dir { color:var(--fg3) } .rvpath b { font-weight:600; color:var(--fg) }
+.rvstat { display:flex; gap:6px; align-items:center; font:11.5px var(--mono) }
+.rvstat .a { color:var(--add-fg) } .rvstat .d { color:var(--del-fg) }
+.rvstat .tag { font:500 11px var(--sans); padding:1px 7px; border-radius:10px; background:var(--hover); color:var(--fg2) }
+.rvstat .tag.del { color:var(--del-fg) }
+.rvflash { font-size:11px; color:var(--work); animation:rvfade 1.6s ease forwards }
+@keyframes rvfade { 0%,60% { opacity:1 } 100% { opacity:0 } }
+.rvbar .seg button { height:22px; font-size:12px }
+.rvbar .btn.on { color:var(--fg); background:var(--sel); border-color:var(--line2) }
+.rvviewed { display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 9px; border:1px solid var(--line); border-radius:6px; font-size:12px; color:var(--fg2); cursor:pointer }
+.rvviewed:has(input:checked) { color:var(--work); border-color:color-mix(in srgb,var(--work) 45%,transparent); background:color-mix(in srgb,var(--work) 8%,transparent) }
+.rvviewed input { accent-color:var(--work) }
+.rvsidebtn { display:none }
+.rvbody { overflow:auto; min-height:0; scroll-padding-top:8px }
+.rvfoot { display:flex; align-items:center; gap:8px; padding:8px 12px; border-top:1px solid var(--line); background:var(--pane); font-size:12.5px }
+.rvfoot .sp { flex:1 } .rvfoot .n { color:var(--fg2) }
+.rnote { padding:28px; color:var(--fg3); font-size:12.5px; text-align:center }
+
+/* ---------- code: diff and source ---------- */
+.rvcontent.diff, .rvcontent.file { font:12px/20px var(--mono); color:var(--code); padding-bottom:40px; min-width:max-content }
+.rl { display:grid; grid-template-columns:48px 48px 18px minmax(0,1fr) }
+.rl.src { grid-template-columns:56px minmax(0,1fr) }
+.rl code, .rl2 code { font:inherit; white-space:pre; padding-right:24px }
+.rn { color:var(--gut); text-align:right; padding:0 10px 0 0; user-select:none; font-size:11px; position:relative }
+.rn.can { cursor:pointer }
+.rn.can:hover { color:var(--fg) }
+.rn.can:hover::before { content:"+"; position:absolute; left:4px; top:1px; width:16px; height:16px; line-height:16px; text-align:center; border-radius:4px; background:var(--fg); color:var(--bg); font-weight:600 }
+.rcut { color:var(--fg3); font-style:italic; margin-left:6px; user-select:none }
+.rs { color:var(--gut); user-select:none; text-align:center }
+.rl.add { background:var(--add-bg) } .rl.add .rs { color:var(--add-fg) } .rl.add .rn { color:var(--add-fg); opacity:.7 }
+.rl.del { background:var(--del-bg) } .rl.del .rs { color:var(--del-fg) } .rl.del .rn { color:var(--del-fg); opacity:.7 }
+.rl.add mark, .half.add mark { background:var(--add-hl); color:inherit; border-radius:2px }
+.rl.del mark, .half.del mark { background:var(--del-hl); color:inherit; border-radius:2px }
+.rh { position:sticky; top:0; z-index:1; padding:4px 12px 4px 114px; font:11.5px var(--mono); color:var(--fg3); background:color-mix(in srgb,var(--pane) 92%,transparent); backdrop-filter:blur(6px); border-block:1px solid var(--line); white-space:pre }
+.rgap { display:block; width:100%; text-align:left; padding:4px 12px 4px 114px; font:11.5px var(--mono); color:var(--fg3); background:var(--pane) }
+.rgap:hover { color:var(--fg); background:var(--hover) }
+.rvcontent.split { min-width:0 }
+.rvcontent.split .rh, .rvcontent.split .rgap { padding-left:60px }
+.rl2 { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) }
+.half { display:grid; grid-template-columns:48px minmax(0,1fr); overflow:hidden; min-width:0 }
+.half + .half { border-left:1px solid var(--line) }
+.half code { white-space:pre-wrap; overflow-wrap:anywhere }
+.half.add { background:var(--add-bg) } .half.del { background:var(--del-bg) }
+.half.none { background:repeating-linear-gradient(135deg,transparent 0 6px,color-mix(in srgb,var(--line) 60%,transparent) 6px 7px) }
+
+/* ---------- comments ---------- */
+.rc, .rcompose { margin:6px 16px 8px 114px; padding:10px 12px; border:1px solid var(--line2); border-radius:10px; background:var(--bg); font:13px/1.5 var(--sans); color:var(--fg); box-shadow:0 1px 3px rgba(0,0,0,.06); max-width:720px; white-space:normal }
+.rvcontent.file .rc, .rvcontent.file .rcompose, .rvcontent.split .rc, .rvcontent.split .rcompose { margin-left:64px }
+.rc { display:grid; grid-template-columns:auto 1fr auto; gap:4px 10px; align-items:start }
+.rcwho { font-size:11.5px; font-weight:600; color:var(--need) }
+.rc p { white-space:pre-wrap; overflow-wrap:anywhere }
+.rcompose textarea { width:100%; min-height:64px; padding:8px 10px; border:1px solid var(--line); border-radius:7px; background:var(--pane); color:var(--fg); font:13px/1.45 var(--sans); resize:vertical; outline:none }
+.rcompose textarea:focus { border-color:var(--line2) }
+.rcompose .acts { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:8px }
+.rcompose .hint { margin-right:auto; color:var(--fg3); font-size:11.5px }
+
+/* ---------- markdown ---------- */
+.rvcontent.preview { padding:28px clamp(16px,5vw,56px) 64px }
+.md { max-width:860px; margin:0 auto; font:15px/1.65 var(--sans); color:var(--fg); overflow-wrap:break-word }
+.md .mdb { position:relative; border-radius:8px }
+.md .mdnew { background:var(--add-bg); box-shadow:-12px 0 0 var(--add-bg), 12px 0 0 var(--add-bg) }
+.md .mdnew::before { content:""; position:absolute; left:-18px; top:4px; bottom:4px; width:3px; border-radius:2px; background:var(--add-fg) }
+.md h1, .md h2, .md h3, .md h4, .md h5, .md h6 { margin:1.4em 0 .5em; line-height:1.25; font-weight:650; letter-spacing:-.01em; scroll-margin-top:12px }
+.md h1 { font-size:2em; padding-bottom:.3em; border-bottom:1px solid var(--line) }
+.md h2 { font-size:1.45em; padding-bottom:.25em; border-bottom:1px solid var(--line) }
+.md h3 { font-size:1.2em } .md h4 { font-size:1.05em } .md h5, .md h6 { font-size:.95em; color:var(--fg2) }
+.md .mdb:first-child > :first-child { margin-top:0 }
+.md p, .md ul, .md ol, .md blockquote, .md table, .md pre { margin:0 0 1em }
+.md ul, .md ol { padding-left:1.6em }
+.md li + li { margin-top:.25em }
+.md li > input[type="checkbox"] { margin:0 .4em 0 -1.3em; vertical-align:middle; accent-color:var(--work) }
+.md a { color:#2f81f7; text-decoration:none; cursor:pointer } .md a:hover { text-decoration:underline }
+.md code { font:.86em var(--mono); padding:.15em .4em; border-radius:5px; background:var(--hover) }
+.md pre.mdcode { padding:14px 16px; border-radius:10px; background:var(--pane); border:1px solid var(--line); overflow:auto; font:12.5px/1.55 var(--mono) }
+.md pre.mdcode code { padding:0; background:none; font:inherit; color:var(--code) }
+.md blockquote { padding:.1em 1em; color:var(--fg2); border-left:3px solid var(--line2) }
+.md table { border-collapse:collapse; display:block; overflow:auto; max-width:100%; font-size:.92em }
+.md th, .md td { padding:6px 12px; border:1px solid var(--line) }
+.md th { background:var(--pane); font-weight:600; text-align:left }
+.md tr:nth-child(2n) td { background:color-mix(in srgb,var(--pane) 50%,transparent) }
+.md hr { border:0; height:1px; background:var(--line); margin:1.6em 0 }
+.md img { max-width:100%; border-radius:6px }
+.md .mdblocked { display:inline-block; padding:4px 10px; border:1px dashed var(--line2); border-radius:6px; color:var(--fg3); font-size:12px }
+
+/* ---------- images ---------- */
+.rvimgwrap { display:grid; place-items:center; min-height:100%; padding:24px; background:conic-gradient(var(--hover) 25%,transparent 0 50%,var(--hover) 0 75%,transparent 0) 0 0/20px 20px }
+.rvimg { max-width:100%; max-height:80vh; box-shadow:var(--shadow); border-radius:4px }
+
+/* ---------- syntax colours (highlight.js classes) ---------- */
+.hljs-keyword, .hljs-selector-tag, .hljs-built_in, .hljs-doctag, .hljs-template-tag, .hljs-type.hljs-keyword { color:var(--hl-kw) }
+.hljs-string, .hljs-regexp, .hljs-template-variable, .hljs-addition, .hljs-meta .hljs-string { color:var(--hl-str) }
+.hljs-number, .hljs-literal, .hljs-variable.constant_, .hljs-symbol, .hljs-bullet { color:var(--hl-num) }
+.hljs-title, .hljs-title.function_, .hljs-section, .hljs-selector-id { color:var(--hl-fn) }
+.hljs-comment, .hljs-quote, .hljs-deletion { color:var(--hl-com); font-style:italic }
+.hljs-type, .hljs-title.class_, .hljs-class .hljs-title, .hljs-params .hljs-type { color:var(--hl-type) }
+.hljs-attr, .hljs-attribute, .hljs-property, .hljs-selector-class, .hljs-selector-attr, .hljs-variable { color:var(--hl-attr) }
+.hljs-meta, .hljs-name, .hljs-tag { color:var(--hl-meta) }
+.hljs-emphasis { font-style:italic } .hljs-strong { font-weight:700 }
+
+/* ---------- narrow windows ---------- */
+@media (max-width:900px) {
+  .work > .review { grid-template-columns:minmax(0,1fr) }
+  .rvside { position:absolute; inset:0 auto 0 0; width:min(320px,86%); z-index:6; box-shadow:var(--shadow); transform:translateX(-102%); transition:transform .18s ease }
+  .review.sideopen .rvside { transform:none }
+  .rvsidebtn { display:inline-flex }
+  .rl { grid-template-columns:38px 38px 14px minmax(0,1fr) }
+  .rh, .rgap { padding-left:92px }
+  .rc, .rcompose { margin-left:16px }
+  .rvbar { flex-wrap:wrap }
+  .rvbar .rvstyle, .rvbar .rvpin { display:none }
+}
+@media (prefers-reduced-motion:reduce) { .rvside, .rvprog .track::after { transition:none } .rvflash { animation:none } }

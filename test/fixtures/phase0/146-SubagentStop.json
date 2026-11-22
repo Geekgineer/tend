@@ -1,0 +1,18 @@
+{
+  "session_id": "00000000-0000-0000-0000-000000000000",
+  "transcript_path": "/HOME/.claude/projects/-HOME-x/00000000-0000-0000-0000-000000000000.jsonl",
+  "cwd": "/REPO",
+  "scratchpad_dir": "/REPO",
+  "prompt_id": "00000000-0000-0000-0000-000000000000",
+  "permission_mode": "auto",
+  "agent_id": "a2ece2aceb1468ef8",
+  "agent_type": "",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "SubagentStop",
+  "stop_hook_active": false,
+  "agent_transcript_path": "/HOME/.claude/projects/-HOME-x/00000000-0000-0000-0000-000000000000/subagents/agent-a2ece2aceb1468ef8.jsonl",
+  "background_tasks": [],
+  "session_crons": []
+}

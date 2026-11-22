@@ -1,0 +1,8 @@
+node_modules
+.chrome/
+*.log
+.superpowers/
+dist/
+.DS_Store
+brag-output*/
+captures/

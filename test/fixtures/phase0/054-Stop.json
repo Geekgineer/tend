@@ -1,0 +1,16 @@
+{
+  "session_id": "00000000-0000-0000-0000-000000000000",
+  "transcript_path": "/HOME/.claude/projects/-REPO/00000000-0000-0000-0000-000000000000.jsonl",
+  "cwd": "/REPO",
+  "scratchpad_dir": "/REPO",
+  "prompt_id": "00000000-0000-0000-0000-000000000000",
+  "permission_mode": "default",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "Stop",
+  "stop_hook_active": false,
+  "last_assistant_message": "All three are done, in order: `a.txt`, `b.txt`, and `c.txt`, each containing its own letter. They're in the same `spike-repo` folder as the earlier files.",
+  "background_tasks": [],
+  "session_crons": []
+}

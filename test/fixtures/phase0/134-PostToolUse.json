@@ -1,0 +1,27 @@
+{
+  "session_id": "00000000-0000-0000-0000-000000000000",
+  "transcript_path": "/HOME/.claude/projects/-HOME-x/00000000-0000-0000-0000-000000000000.jsonl",
+  "cwd": "/REPO",
+  "scratchpad_dir": "/REPO",
+  "prompt_id": "00000000-0000-0000-0000-000000000000",
+  "permission_mode": "auto",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Write",
+  "tool_input": {
+    "file_path": "/REPO/auto.txt",
+    "content": "auto\n"
+  },
+  "tool_response": {
+    "type": "create",
+    "filePath": "/REPO/auto.txt",
+    "content": "auto\n",
+    "structuredPatch": [],
+    "originalFile": null,
+    "userModified": false
+  },
+  "tool_use_id": "toolu_01N3NMtbtNMy8WJPz6XDbo9J",
+  "duration_ms": 10
+}

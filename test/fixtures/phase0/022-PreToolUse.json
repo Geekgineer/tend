@@ -1,0 +1,33 @@
+{
+  "session_id": "00000000-0000-0000-0000-000000000000",
+  "transcript_path": "/HOME/.claude/projects/-REPO/00000000-0000-0000-0000-000000000000.jsonl",
+  "cwd": "/REPO",
+  "scratchpad_dir": "/REPO",
+  "prompt_id": "00000000-0000-0000-0000-000000000000",
+  "permission_mode": "default",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "AskUserQuestion",
+  "tool_input": {
+    "questions": [
+      {
+        "question": "Which color should the file be named after: red or blue?",
+        "header": "File color",
+        "options": [
+          {
+            "label": "Red",
+            "description": "Name the file after red."
+          },
+          {
+            "label": "Blue",
+            "description": "Name the file after blue."
+          }
+        ],
+        "multiSelect": false
+      }
+    ]
+  },
+  "tool_use_id": "toolu_0188tLv1iKeoaDwQK4kh4aFc"
+}

@@ -1,0 +1,219 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4977/hook",
+            "timeout": 10,
+            "headers": {
+              "x-tend-token": "spike-token"
+            }
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4977/hook",
+            "timeout": 10,
+            "headers": {
+              "x-tend-token": "spike-token"
+            }
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4977/hook",
+            "timeout": 10,
+            "headers": {
+              "x-tend-token": "spike-token"
+            }
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4977/hook",
+            "timeout": 10,
+            "headers": {
+              "x-tend-token": "spike-token"
+            }
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4977/hook",
+            "timeout": 10,
+            "headers": {
+              "x-tend-token": "spike-token"
+            }
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4977/hook",
+            "timeout": 3600,
+            "headers": {
+              "x-tend-token": "spike-token"
+            }
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4977/hook",
+            "timeout": 10,
+            "headers": {
+              "x-tend-token": "spike-token"
+            }
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4977/hook",
+            "timeout": 10,
+            "headers": {
+              "x-tend-token": "spike-token"
+            }
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4977/hook",
+            "timeout": 10,
+            "headers": {
+              "x-tend-token": "spike-token"
+            }
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4977/hook",
+            "timeout": 10,
+            "headers": {
+              "x-tend-token": "spike-token"
+            }
+          }
+        ]
+      }
+    ],
+    "TaskCreated": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4977/hook",
+            "timeout": 10,
+            "headers": {
+              "x-tend-token": "spike-token"
+            }
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4977/hook",
+            "timeout": 10,
+            "headers": {
+              "x-tend-token": "spike-token"
+            }
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4977/hook",
+            "timeout": 10,
+            "headers": {
+              "x-tend-token": "spike-token"
+            }
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:4977/hook",
+            "timeout": 10,
+            "headers": {
+              "x-tend-token": "spike-token"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "./statusline.sh",
+    "refreshInterval": 30
+  }
+}

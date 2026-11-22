@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>tend.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cg fill='%23636974'%3E%3Crect x='0' y='0' width='4.5' height='4.5' rx='1'/%3E%3Crect x='5.75' y='0' width='4.5' height='4.5' rx='1'/%3E%3Crect x='11.5' y='0' width='4.5' height='4.5' rx='1'/%3E%3Crect x='0' y='5.75' width='4.5' height='4.5' rx='1'/%3E%3Crect x='11.5' y='5.75' width='4.5' height='4.5' rx='1'/%3E%3Crect x='0' y='11.5' width='4.5' height='4.5' rx='1'/%3E%3Crect x='5.75' y='11.5' width='4.5' height='4.5' rx='1'/%3E%3Crect x='11.5' y='11.5' width='4.5' height='4.5' rx='1'/%3E%3C/g%3E%3Crect x='5.75' y='5.75' width='4.5' height='4.5' rx='1' fill='%23eea23c'/%3E%3C/svg%3E">
+<!-- No web fonts: tend never phones home. Instrument Sans / JetBrains Mono are used if installed, system fonts otherwise. -->
+<link rel="stylesheet" href="/vendor/xterm.css">
+<link rel="stylesheet" href="/ui/styles.css">
+<link rel="stylesheet" href="/ui/review.css">
+<script src="/vendor/xterm.js"></script>
+<script src="/vendor/addon-fit.js"></script>
+<script type="module" src="/ui/app.js"></script>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="brand" aria-label="tend."><span class="bm" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="on"></i><i></i><i></i><i></i><i></i></span><span aria-hidden="true">tend<em>.</em></span></div>
+    <div class="strip" id="strip"></div>
+    <div class="summary" id="summary"></div>
+    <div class="right"><div class="calm" id="calm"></div><div class="usage" id="usage"></div><button class="btn pri" data-new>New session</button></div>
+  </header>
+
+  <div class="compat" id="compat" role="status" hidden></div>
+  <div class="main" id="main">
+    <nav class="list" aria-label="Sessions">
+      <div class="lt">
+        <div class="seg" id="seg" role="tablist">
+          <button data-v="you" role="tab">For you <span class="c n" id="cYou"></span></button>
+          <button data-v="all" role="tab">All sessions <span class="c" id="cAll"></span></button>
+        </div>
+      </div>
+      <div class="scroll" id="list"></div>
+    </nav>
+    <section class="detail">
+      <header class="dh" id="dh"></header>
+      <section class="decision" id="decision" aria-live="polite" hidden></section>
+      <details class="brief" id="brief" hidden></details>
+      <div class="mbar" id="mbar" hidden></div>
+      <div class="work" id="work">
+        <div class="review" id="review" hidden></div>
+        <div class="term" id="term"><div class="termhost" id="termHost"></div><p class="tnote" id="termNote" role="status" hidden></p><p class="tpause" id="termPaused" hidden></p></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="blank" id="blank" hidden>
+    <span class="bm big" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="on"></i><i></i><i></i><i></i><i></i></span>
+    <h2>No sessions yet</h2>
+    <p>Start Claude Code in a folder and tend keeps an eye on it. You only hear from it when it needs you.</p>
+    <button class="btn pri" data-new>New session</button>
+  </div>
+</div>
+
+<dialog id="newDlg" aria-labelledby="newTitle">
+  <form id="newForm" method="dialog">
+    <h2 id="newTitle">New session</h2>
+    <div class="fld">
+      <label for="newCwd">Folder</label>
+      <div class="frow">
+        <input id="newCwd" name="cwd" required autocomplete="off" spellcheck="false" placeholder="~/code/my-project">
+        <button type="button" class="btn" id="newChoose">Choose…</button>
+      </div>
+      <div class="recent" id="newRecent" hidden></div>
+    </div>
+    <label><span>Name <span class="opt">optional</span></span><input id="newName" name="name" autocomplete="off" spellcheck="false" placeholder="Defaults to the folder name"></label>
+    <label class="acct" id="newAcctRow" hidden><span>Account</span><select id="newAcct" name="account"></select></label>
+    <label class="chk"><input type="checkbox" id="newIso" name="isolate" checked><span>Own worktree</span></label>
+    <p class="hint wip" id="newWip" hidden></p>
+    <p class="hint" id="newHint">Creates branch tend/&lt;name&gt;-xxxx from HEAD. Untick to run in the folder itself.</p>
+    <p class="err" id="newErr" role="alert"></p>
+    <div class="acts"><button type="button" class="btn" id="newCancel">Cancel</button><button type="submit" class="btn pri" id="newGo">Start session</button></div>
+  </form>
+</dialog>
+</body>
+</html>

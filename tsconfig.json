@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "es2023",
+    "lib": [
+      "es2023",
+      "dom"
+    ],
+    "checkJs": true,
+    "skipLibCheck": true,
+    "paths": {
+      "/vendor/marked.js": [
+        "./node_modules/marked/lib/marked.d.ts"
+      ],
+      "/vendor/purify.js": [
+        "./node_modules/dompurify/dist/purify.es.d.mts"
+      ],
+      "/vendor/highlight.js": [
+        "./ui/types/highlight.d.ts"
+      ]
+    }
+  },
+  "include": [
+    "src",
+    "test",
+    "scripts",
+    "ui",
+    "bin"
+  ]
+}

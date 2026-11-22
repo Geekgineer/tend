@@ -1,0 +1,18 @@
+{
+  "session_id": "00000000-0000-0000-0000-000000000000",
+  "transcript_path": "/HOME/.claude/projects/-HOME-x/00000000-0000-0000-0000-000000000000.jsonl",
+  "cwd": "/REPO",
+  "scratchpad_dir": "/REPO",
+  "prompt_id": "00000000-0000-0000-0000-000000000000",
+  "permission_mode": "plan",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Write",
+  "tool_input": {
+    "file_path": "/HOME/.claude/plans/plan-creating-a-file-zesty-gosling.md",
+    "content": "1. Create `plan.txt` in the repo root (/REPO) containing the text `ok`.\n2. Verify by reading the file back to confirm its contents.\n"
+  },
+  "tool_use_id": "toolu_019jVgmfjgVnjRY25FwPCDbg"
+}

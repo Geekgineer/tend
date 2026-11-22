@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tend</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: fleet strip · decision inbox / sessions (left) · decision + briefing + terminal + resizable diff (right) · status bar */
+:root{
+  --bg:#fbfbfa; --pane:#f4f4f2; --hover:#ececea; --sel:#e5e5e2; --line:#e4e4e0; --line2:#d5d5d0;
+  --fg:#18191b; --fg2:#5b5e66; --fg3:#96989f;
+  --need:#bf7210; --need-bg:rgba(191,114,16,.08); --need-line:rgba(191,114,16,.35);
+  --work:#2b9a6c; --review:#3d6fd9; --stuck:#cc4a40; --idle:#c3c4c8;
+  --term:#16171a; --term-fg:#d5d8de; --term-dim:#70757f; --term-line:#25272c;
+  --shadow:0 16px 48px rgba(20,20,20,.16),0 0 0 1px rgba(20,20,20,.06);
+  --sans:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1113; --pane:#131518; --hover:#1a1d21; --sel:#20242a; --line:#212429; --line2:#2c3037;
+  --fg:#e9eaec; --fg2:#a0a4ad; --fg3:#636974;
+  --need:#eea23c; --need-bg:rgba(238,162,60,.085); --need-line:rgba(238,162,60,.4);
+  --work:#4ec79b; --review:#7ba6ff; --stuck:#ef7368; --idle:#474d57;
+  --term:#0b0c0e; --term-fg:#d5d8de; --term-dim:#656b76; --term-line:#1d2025;
+  --shadow:0 20px 60px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.06);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0f1113; --pane:#131518; --hover:#1a1d21; --sel:#20242a; --line:#212429; --line2:#2c3037;
+  --fg:#e9eaec; --fg2:#a0a4ad; --fg3:#636974;
+  --need:#eea23c; --need-bg:rgba(238,162,60,.085); --need-line:rgba(238,162,60,.4);
+  --work:#4ec79b; --review:#7ba6ff; --stuck:#ef7368; --idle:#474d57;
+  --term:#0b0c0e; --term-fg:#d5d8de; --term-dim:#656b76; --term-line:#1d2025;
+  --shadow:0 20px 60px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.06);
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font:13px/1.45 var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden}
+.shell{height:100%;display:grid;grid-template-rows:46px minmax(0,1fr) 28px}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--need);outline-offset:1px;border-radius:5px}
+kbd{font:10.5px/15px var(--mono);color:var(--fg3);border:1px solid var(--line2);border-radius:3px;padding:0 4px;background:var(--bg)}
+code{font-family:var(--mono);font-size:12px}
+.num{font-variant-numeric:tabular-nums}
+svg.ic{width:14px;height:14px;flex:none;display:block}
+
+/* ---------- top bar + fleet strip ---------- */
+.top{display:flex;align-items:center;gap:18px;padding:0 14px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600;letter-spacing:-.01em;font-size:13.5px}
+.brand i{width:14px;height:14px;border:1.5px solid var(--fg);border-radius:4px;position:relative}
+.brand i::after{content:"";position:absolute;inset:3px;background:var(--need);border-radius:1px}
+.bm{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5px;width:16px;height:16px}.bm i{width:auto;height:auto;border:0;position:static;border-radius:1.5px;background:color-mix(in srgb,var(--fg3) 70%,transparent)}.bm i.on{background:var(--need)}.bm i::after{display:none}.brand em{font-style:normal;color:var(--need)}.brand{letter-spacing:-.04em;font-size:15px}
+.strip{display:flex;align-items:flex-end;gap:14px}
+.sg{display:flex;flex-direction:column;gap:3px}
+.sg .pl{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg3);line-height:1}
+.sg .ts{display:flex;gap:3px}
+.tile{width:18px;height:18px;border-radius:4px;display:grid;place-items:center;position:relative;background:var(--hover);color:var(--fg3)}
+.tile svg{width:11px;height:11px}
+.tile.work{background:color-mix(in srgb,var(--work) 22%,transparent);color:var(--work)}
+.tile.idle{background:transparent;box-shadow:inset 0 0 0 1px var(--line2)}
+.tile.perm,.tile.question{background:var(--need);color:var(--bg)}
+.tile.stuck,.tile.conflict{background:var(--stuck);color:var(--bg)}
+.tile.review{background:var(--review);color:var(--bg)}
+.tile.perm::after,.tile.question::after{content:"";position:absolute;inset:-3px;border-radius:6px;border:1px solid var(--need-line);animation:ring 1.8s ease-in-out infinite}
+.tile.sel{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--fg)}
+@keyframes ring{50%{opacity:0}}
+.tip{position:fixed;z-index:40;pointer-events:none;background:var(--fg);color:var(--bg);font-size:12px;padding:6px 9px;border-radius:7px;line-height:1.35;max-width:260px;opacity:0;transition:opacity .1s}
+.tip.show{opacity:1}
+.tip b{font-weight:600}
+.summary{display:flex;gap:14px;font-size:12px;color:var(--fg2);align-self:center}
+.summary b{color:var(--need);font-weight:600}
+.top .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.cmdk{display:flex;align-items:center;gap:24px;height:28px;padding:0 6px 0 10px;border:1px solid var(--line);border-radius:7px;color:var(--fg3);font-size:12.5px;background:var(--pane)}
+.cmdk:hover{border-color:var(--line2);color:var(--fg2)}
+.icon{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;color:var(--fg3)}
+.icon:hover{background:var(--hover);color:var(--fg)}
+
+/* ---------- main ---------- */
+.main{display:grid;grid-template-columns:344px minmax(0,1fr);min-height:0}
+
+/* list */
+.list{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--pane)}
+.lt{display:flex;align-items:center;gap:8px;padding:10px 12px 6px}
+.seg{display:flex;padding:2px;border-radius:7px;background:var(--hover)}
+.seg button{height:24px;padding:0 10px;border-radius:5px;color:var(--fg2);font-size:12.5px;display:flex;align-items:center;gap:6px}
+.seg button.on{background:var(--bg);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08),0 0 0 1px var(--line)}
+.seg .c{font-size:11px;color:var(--fg3)} .seg .c.n{color:var(--need);font-weight:600}
+.lt .new{margin-left:auto;font-size:12.5px;color:var(--fg3);height:24px;padding:0 8px;border-radius:5px}
+.lt .new:hover{background:var(--hover);color:var(--fg)}
+.scroll{overflow:auto;flex:1;padding-bottom:12px}
+.gh{display:flex;align-items:center;gap:6px;padding:14px 14px 5px;font-size:11.5px;color:var(--fg3);font-weight:500}
+.gh .r{margin-left:auto;font-weight:400}
+.gh.blk{color:var(--need)} .gh.prob{color:var(--stuck)} .gh.rev{color:var(--review)}
+.row{display:grid;grid-template-columns:14px minmax(0,1fr) auto;column-gap:10px;width:calc(100% - 12px);margin:0 6px;padding:7px 8px;border-radius:6px;text-align:left;align-items:center}
+.row:hover{background:var(--hover)}
+.row.on{background:var(--sel)}
+.row .g{grid-row:1;color:var(--fg3)}
+.row .g.work{color:var(--work)} .row .g.perm,.row .g.question{color:var(--need)} .row .g.stuck,.row .g.conflict{color:var(--stuck)} .row .g.review{color:var(--review)}
+.row .n{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .n span{color:var(--fg3);font-weight:400}
+.row .t{font-size:11.5px;color:var(--fg3);white-space:nowrap}
+.row .a{grid-column:2/4;font-size:12px;color:var(--fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.row .a.mono{font:11.5px var(--mono)}
+.row.attn .a{color:var(--fg2)}
+.risk{font-size:10.5px;font-weight:600;padding:0 5px;border-radius:3px;margin-left:6px;vertical-align:1px}
+.risk.high{color:var(--stuck);background:color-mix(in srgb,var(--stuck) 12%,transparent)}
+.risk.med{color:var(--need);background:var(--need-bg)}
+.risk.low{color:var(--fg3);background:var(--hover)}
+.empty{margin:28px 16px;text-align:center;color:var(--fg3);font-size:12.5px;line-height:1.6}
+.empty b{display:block;color:var(--fg);font-size:14px;font-weight:500;margin-bottom:2px}
+
+/* detail */
+.detail{display:grid;grid-template-rows:auto auto auto minmax(0,1fr);min-width:0;min-height:0}
+.dh{padding:10px 16px 9px;border-bottom:1px solid var(--line);display:grid;gap:5px}
+.dh .l1{display:flex;align-items:center;gap:10px}
+.dh h1{font-size:14.5px;font-weight:600;letter-spacing:-.01em}
+.dh .goal{color:var(--fg2);font-size:13px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dh .r{margin-left:auto;display:flex;align-items:center;gap:4px;flex:none}
+.facts{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11.5px;color:var(--fg3)}
+.facts span{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.facts code{font-size:11px;color:var(--fg2)}
+.facts .okc{color:var(--work)} .facts .warn{color:var(--need)} .facts .bad{color:var(--stuck)}
+.btn{display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 11px;border-radius:7px;font-size:12.5px;font-weight:500;color:var(--fg2);border:1px solid var(--line);white-space:nowrap}
+.btn:hover{color:var(--fg);border-color:var(--line2);background:var(--hover)}
+.btn.pri{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.btn.pri:hover{opacity:.88;background:var(--fg)}
+.btn.pri kbd{background:transparent;color:var(--bg);border-color:color-mix(in srgb,var(--bg) 35%,transparent)}
+.btn.danger{background:var(--stuck);border-color:var(--stuck);color:#fff}
+.btn.ghost{border-color:transparent}
+
+/* decision */
+.dec{border-bottom:1px solid var(--line);background:var(--need-bg);padding:12px 16px;display:grid;gap:10px}
+.dec.stuck,.dec.conflict{background:color-mix(in srgb,var(--stuck) 6%,transparent)}
+.dec.review{background:color-mix(in srgb,var(--review) 6%,transparent)}
+.dec[hidden]{display:none}
+.dec .h{display:flex;align-items:center;gap:8px;font-weight:600}
+.dec .h .k{color:var(--need);font-size:12px}
+.dec.stuck .h .k,.dec.conflict .h .k{color:var(--stuck)} .dec.review .h .k{color:var(--review)}
+.dec .h .w{margin-left:auto;font-weight:400;font-size:12px;color:var(--fg3)}
+.cmd{font:12.5px/1.5 var(--mono);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:8px 10px;color:var(--fg);white-space:pre-wrap;word-break:break-all}
+.ctx{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12px}
+.ctx dt{color:var(--fg3)} .ctx dd{color:var(--fg2)} .ctx dd code{color:var(--fg)}
+.dec .acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.dec .acts .note{margin-left:auto;font-size:11.5px;color:var(--fg3)}
+.scope{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border:1px dashed var(--line2);border-radius:7px;font-size:12.5px;color:var(--fg2)}
+.scope[hidden]{display:none}
+.scope code{color:var(--fg);background:var(--bg);padding:1px 6px;border-radius:4px;border:1px solid var(--line)}
+.opts{display:grid;gap:6px}
+.optb{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;text-align:left;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.optb:hover{border-color:var(--line2)}
+.optb kbd{grid-row:1/3;align-self:center}
+.optb b{font-weight:500}
+.optb span{color:var(--fg3);font-size:12px}
+
+/* briefing */
+.brief{border-bottom:1px solid var(--line);padding:0 16px}
+.brief summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;height:38px;font-size:12.5px}
+.brief summary::-webkit-details-marker{display:none}
+.brief summary .lab{font-weight:600}
+.brief summary .one{color:var(--fg2);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brief summary .src{margin-left:auto;color:var(--fg3);font-size:11.5px;white-space:nowrap}
+.brief summary .chev{color:var(--fg3);transition:transform .15s}
+.brief[open] summary .chev{transform:rotate(180deg)}
+.bgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;padding:2px 0 14px;font-size:12.5px}
+.bgrid h4{font-size:11px;font-weight:500;color:var(--fg3);margin-bottom:6px}
+.bgrid ul{list-style:none;display:grid;gap:5px}
+.bgrid li{display:grid;grid-template-columns:14px 1fr;gap:6px;color:var(--fg2);align-items:start}
+.bgrid li .m{color:var(--work);font-size:12px;line-height:1.45}
+.bgrid li .m.x{color:var(--stuck)} .bgrid li .m.o{color:var(--fg3)}
+.ev{font:11px var(--mono);color:var(--fg3);text-decoration:underline;text-decoration-color:var(--line2);text-underline-offset:2px;cursor:pointer}
+.ev:hover{color:var(--fg)}
+.aisum{font-size:11.5px;color:var(--fg3);border:1px solid var(--line);border-radius:6px;padding:2px 8px;margin-left:8px}
+.aisum:hover{color:var(--fg);border-color:var(--line2)}
+
+/* work area */
+.work{display:grid;grid-template-columns:minmax(0,1fr) 6px var(--fw,340px);min-height:0}
+.work.nofiles{grid-template-columns:minmax(0,1fr) 0 0}
+.work.nofiles .files,.work.nofiles .handle{display:none}
+.work.wide{--fw:62%}
+.term{display:flex;flex-direction:column;min-height:0;background:var(--term);position:relative}
+.term.focused{box-shadow:inset 0 0 0 1px rgba(238,162,60,.45)}
+.tt{display:flex;align-items:center;gap:2px;padding:0 10px;height:34px;border-bottom:1px solid var(--term-line)}
+.tt span{padding:4px 10px;border-radius:5px;font-size:12px;color:var(--term-dim)}
+.tt span.on{color:var(--term-fg);background:rgba(255,255,255,.06)}
+.tt .live{margin-left:auto;font-size:11.5px;color:var(--term-dim);display:flex;align-items:center;gap:6px;background:none}
+.tt .live i{width:6px;height:6px;border-radius:50%;background:var(--work)}
+.tout{flex:1;overflow:auto;padding:14px 18px 20px;font:12.5px/1.65 var(--mono);color:var(--term-fg);white-space:pre-wrap;cursor:text}
+.tout .u{color:#8b919c} .tout .k{color:#6fd3a8} .tout .g{color:var(--term-dim)} .tout .e{color:#ef7368}
+.tout .box{display:block;margin-top:8px;padding:10px 12px;border:1px solid rgba(238,162,60,.5);border-radius:7px;color:#eee1c8}
+.tout .box .s{color:#eea23c}
+.cursor{display:inline-block;width:7px;height:14px;background:var(--term-fg);vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.handle{cursor:col-resize;background:var(--line);position:relative}
+.handle::after{content:"";position:absolute;left:2px;top:50%;width:2px;height:28px;margin-top:-14px;border-radius:1px;background:var(--fg3);opacity:.5}
+.handle:hover{background:var(--line2)}
+.files{display:flex;flex-direction:column;min-height:0;background:var(--pane);min-width:0}
+.fh{display:flex;align-items:center;gap:6px;height:34px;padding:0 8px 0 10px;border-bottom:1px solid var(--line)}
+.fh .seg button{height:22px;font-size:12px}
+.fh .sp{margin-left:auto}
+.tree{padding:6px 0;font-size:12.5px;border-bottom:1px solid var(--line)}
+.f{display:flex;align-items:center;gap:8px;width:calc(100% - 12px);margin:0 6px;padding:3px 8px;border-radius:5px;color:var(--fg2);text-align:left}
+.f:hover{background:var(--hover);color:var(--fg)}
+.f.on{background:var(--sel);color:var(--fg)}
+.f .s{margin-left:auto;font:11px var(--mono);color:var(--fg3)}
+.f .s.m{color:var(--need)} .f .s.a{color:var(--work)}
+.f .ov{font-size:10.5px;color:var(--stuck);margin-left:6px}
+.dir{padding:8px 14px 2px;font-size:11.5px;color:var(--fg3)}
+.diffh{display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:12px;color:var(--fg2)}
+.diffh .r{margin-left:auto;display:flex;gap:2px}
+.diffh .r button{font-size:11.5px;color:var(--fg3);padding:2px 6px;border-radius:4px}
+.diffh .r button:hover{background:var(--hover);color:var(--fg)}
+.diff{flex:1;overflow:auto;font:11.5px/1.75 var(--mono)}
+.dl{display:grid;grid-template-columns:34px minmax(0,1fr);padding-right:10px;color:var(--fg2);white-space:pre-wrap;word-break:break-all}
+.dl i{font-style:normal;color:var(--fg3);text-align:right;padding-right:10px;user-select:none}
+.dl.p{background:color-mix(in srgb,var(--work) 10%,transparent);color:var(--fg)}
+.dl.m{background:color-mix(in srgb,var(--stuck) 9%,transparent)}
+
+/* status bar */
+.status{display:flex;align-items:center;gap:16px;padding:0 14px;border-top:1px solid var(--line);font-size:11.5px;color:var(--fg3)}
+.status span{display:flex;align-items:center;gap:5px}
+.status .r{margin-left:auto;display:flex;gap:16px;align-items:center}
+.status .ok{width:6px;height:6px;border-radius:50%;background:var(--work)}
+.status .typing{color:var(--need);font-weight:500}
+.status .typing[hidden],.status .keys[hidden]{display:none}
+.meter{width:56px;height:3px;border-radius:2px;background:var(--line2);overflow:hidden}
+.meter i{display:block;height:100%;width:62%;background:var(--fg2)}
+
+/* palette, notification, toast */
+.veil{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 55%,transparent);backdrop-filter:blur(2px);display:grid;place-items:start center;padding-top:14vh;z-index:20}
+.veil[hidden]{display:none}
+.pal{width:min(560px,92vw);background:var(--bg);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.pal input{width:100%;height:48px;border:0;border-bottom:1px solid var(--line);padding:0 16px;background:transparent;color:var(--fg);font:14.5px var(--sans);outline:none}
+.pll{max-height:320px;overflow:auto;padding:6px}
+.pi{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:7px;text-align:left;font-size:13px}
+.pi.on,.pi:hover{background:var(--hover)}
+.pi .m{margin-left:auto;color:var(--fg3);font-size:12px}
+.pgh{padding:8px 10px 4px;font-size:11px;color:var(--fg3)}
+.notif{position:fixed;top:58px;right:14px;width:330px;background:var(--bg);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:flex;gap:10px;transform:translateX(120%);transition:transform .3s cubic-bezier(.2,.8,.2,1);z-index:15;cursor:pointer;color:var(--need)}
+.notif.show{transform:none}
+.notif div{color:var(--fg)}
+.notif b{font-weight:600;display:block}
+.notif span{color:var(--fg2);font-size:12.5px}
+.toast{position:fixed;left:50%;bottom:42px;transform:translateX(-50%) translateY(10px);opacity:0;transition:.18s;background:var(--fg);color:var(--bg);padding:7px 14px;border-radius:8px;font-size:12.5px;pointer-events:none;z-index:30}
+.toast.show{opacity:1;transform:translateX(-50%)}
+/* context + usage */
+.cring{width:14px;height:14px;flex:none;display:block}
+.row .t{display:flex;align-items:center;gap:6px}
+.usage{display:flex;align-items:center;gap:8px;height:28px;padding:0 10px;border:1px solid var(--line);border-radius:7px;font-size:12px;color:var(--fg2);background:var(--pane)}
+.usage:hover{border-color:var(--line2);color:var(--fg)}
+.usage b{font-weight:600}
+.ubar{width:46px;height:4px;border-radius:2px;background:var(--line2);position:relative}
+.ubar i{position:absolute;left:0;top:0;bottom:0;border-radius:2px}
+.ubar u{position:absolute;top:-2px;width:1.5px;height:8px;background:var(--fg)}
+.z-chill{color:var(--work)} .z-ok{color:var(--fg2)} .z-warn{color:var(--need)} .z-hot{color:var(--stuck)}
+.pop{position:fixed;top:50px;right:52px;width:360px;background:var(--bg);border-radius:12px;box-shadow:var(--shadow);padding:16px;z-index:25;display:grid;gap:16px}
+.pop[hidden]{display:none}
+.win{display:grid;gap:7px}
+.win .h{display:flex;align-items:baseline;gap:8px;font-size:12.5px}
+.win .h b{font-size:20px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.win .h .r{margin-left:auto;color:var(--fg3);font-size:12px}
+.wbar{height:6px;border-radius:3px;background:var(--hover);position:relative}
+.wbar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+.wbar u{position:absolute;top:-3px;width:2px;height:12px;border-radius:1px;background:var(--fg)}
+.win p{font-size:12.5px;color:var(--fg2)}
+.burn h6{font-size:11px;font-weight:500;color:var(--fg3);margin-bottom:6px}
+.burn button{display:grid;grid-template-columns:1fr 70px 34px;gap:10px;align-items:center;width:100%;padding:4px 0;font-size:12.5px;text-align:left}
+.burn button:hover{color:var(--fg)}
+.burn .bb{height:4px;border-radius:2px;background:var(--hover);overflow:hidden}
+.burn .bb i{display:block;height:100%;background:var(--fg3)}
+.burn .pc{color:var(--fg3);text-align:right;font-variant-numeric:tabular-nums}
+.popfoot{font-size:11px;color:var(--fg3);border-top:1px solid var(--line);padding-top:10px}
+.acc{display:flex;align-items:center;gap:7px}
+.adot{width:7px;height:7px;border-radius:2px;display:inline-block;flex:none}
+.usep{width:1px;height:14px;background:var(--line2)}
+.pop{max-height:calc(100vh - 70px);overflow:auto}
+.accsec{display:grid;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.acch{display:flex;align-items:center;gap:8px;font-size:13px}
+.acch b{font-weight:600}
+.acch span{margin-left:auto;color:var(--fg3);font-size:11.5px}
+.wbar.thin{height:4px}
+.suggest{display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--fg2)}
+.suggest p{flex:1;min-width:0;line-height:1.5}
+.suggest b{color:var(--fg);font-weight:500;white-space:nowrap}
+.suggest b .adot{margin-right:5px;vertical-align:0}
+.suggest .btn{flex:none;height:26px}
+.row .n .adot{margin-right:6px;vertical-align:1px}
+.cachehint{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--fg2)}
+.cachehint b{color:var(--need);font-weight:600}
+.advice{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:8px 10px;border-radius:8px;background:var(--hover);font-size:12.5px;color:var(--fg2)}
+.advice b{color:var(--fg);font-weight:500}
+.advice .btn{margin-left:auto;height:26px}
+@media (prefers-reduced-motion:reduce){.tile::after,.cursor{animation:none!important}.notif,.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="top">
+  <div class="brand"><span class="bm"><i></i><i></i><i></i><i></i><i class="on"></i><i></i><i></i><i></i><i></i></span><span>tend<em>.</em></span></div>
+  <div class="strip" id="strip"></div>
+  <div class="summary" id="summary"></div>
+  <div class="right">
+    <button class="usage" id="usage" onclick="togglePop()" title="Claude usage limits"></button>
+    <button class="cmdk" onclick="openPal()">Search or run a command<kbd>⌘K</kbd></button>
+    <button class="icon" title="Switch theme" onclick="theme()">◐</button>
+  </div>
+</header>
+
+<div class="main">
+  <nav class="list">
+    <div class="lt">
+      <div class="seg" id="seg">
+        <button data-v="you" class="on" onclick="view('you')">For you <span class="c n" id="cYou"></span></button>
+        <button data-v="all" onclick="view('all')">All sessions <span class="c" id="cAll"></span></button>
+      </div>
+      <button class="new">+ New</button>
+    </div>
+    <div class="scroll" id="list"></div>
+  </nav>
+
+  <section class="detail">
+    <header class="dh" id="dh"></header>
+    <div class="dec" id="dec"></div>
+    <details class="brief" id="brief"></details>
+    <div class="work" id="work">
+      <div class="term" id="term">
+        <div class="tt"><span class="on">claude</span><span>shell</span><span>+</span><span class="live"><i></i>live</span></div>
+        <div class="tout" id="tout" tabindex="0"></div>
+      </div>
+      <div class="handle" id="handle" title="Drag to resize"></div>
+      <aside class="files">
+        <div class="fh"><div class="seg"><button class="on">Changes <span class="c">11</span></button><button>Files</button></div><span class="sp"></span><button class="icon" title="Expand diff" onclick="wide()">⤢</button><button class="icon" title="Hide (F)" onclick="files()">✕</button></div>
+        <div class="tree" id="tree"></div>
+        <div class="diffh">middleware.ts<span class="r"><button>Edit</button><button>Ask Claude about this</button></span></div>
+        <div class="diff">
+          <div class="dl"><i>40</i>export async function authenticate(req) {</div>
+          <div class="dl"><i>41</i>  const bearer = req.headers.get("authorization")</div>
+          <div class="dl"><i>42</i>  if (bearer) return verifyJwt(bearer.slice(7))</div>
+          <div class="dl m"><i>43</i>  return readCookieSession(req)</div>
+          <div class="dl p"><i>43</i>  // legacy cookies stay valid for 7 days</div>
+          <div class="dl p"><i>44</i>  const legacy = await readCookieSession(req)</div>
+          <div class="dl p"><i>45</i>  if (legacy &amp;&amp; ageDays(legacy) &lt;= 7)</div>
+          <div class="dl p"><i>46</i>    return issueTokenPair(legacy.userId)</div>
+          <div class="dl p"><i>47</i>  throw new Unauthorized()</div>
+          <div class="dl"><i>48</i>}</div>
+        </div>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<footer class="status">
+  <span><i class="ok"></i>Local · 127.0.0.1</span>
+  <span class="typing" id="typing" hidden>Typing in terminal · shortcuts paused · Esc to leave</span>
+  <span class="keys" id="keys"><kbd>J</kbd><kbd>K</kbd> next decision · <kbd>A</kbd> allow · <kbd>D</kbd> deny · <kbd>F</kbd> files · <kbd>⌘K</kbd> anything</span>
+  <span class="r"><span>Mockup · sample data</span></span>
+</footer>
+</div>
+
+<div class="veil" id="veil" hidden onclick="if(event.target===this)closePal()">
+  <div class="pal"><input id="palIn" placeholder="Jump to a session, file, or action…" oninput="palRender()"><div class="pll" id="pl"></div></div>
+</div>
+<div class="notif" id="notif" onclick="choose('rate');hideNotif()"><span id="nIc"></span><div><b>rate-limits has a question</b><span>Redis or in-memory buckets for the limiter?</span></div></div>
+<div class="tip" id="tip"></div>
+<div class="pop" id="pop" hidden></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- icons: shape, not just colour ---------- */
+const I = {
+  perm:'<svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7"/></svg>',
+  question:'<svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.3a1.8 1.8 0 1 1 2.4 1.7c-.5.2-.7.6-.7 1.1v.3"/><circle cx="8" cy="11.4" r=".5" fill="currentColor"/></svg>',
+  stuck:'<svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 2.5 14 13H2z" stroke-linejoin="round"/><path d="M8 6.5v3"/><circle cx="8" cy="11.2" r=".5" fill="currentColor"/></svg>',
+  conflict:'<svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2.5" y="2.5" width="7" height="7" rx="1.2"/><rect x="6.5" y="6.5" width="7" height="7" rx="1.2"/></svg>',
+  review:'<svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="6"/><path d="m5.5 8.2 1.7 1.7 3.4-3.6"/></svg>',
+  work:'<svg class="ic" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="6" width="2.2" height="4" rx="1.1"/><rect x="6.9" y="3.5" width="2.2" height="9" rx="1.1"/><rect x="10.8" y="5" width="2.2" height="6" rx="1.1"/></svg>',
+  idle:'<svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="8" r="5.5"/><path d="M6.6 6v4M9.4 6v4"/></svg>',
+};
+const KIND = {perm:'Permission', question:'Question', stuck:'Looks stuck', conflict:'Overlapping edits', review:'Ready for review', work:'Working', idle:'Idle'};
+const RANK = {perm:0, question:1, stuck:2, conflict:3, review:4, work:5, idle:6};
+const BUCKET = {perm:'blk', question:'blk', stuck:'prob', conflict:'prob', review:'rev'};
+
+const P = ['fleet-api','web-dashboard','mobile-app','infra'];
+const S = [
+ {id:'auth', n:'auth-refactor', p:0, st:'perm', risk:'med', wait:'6m', run:'1h 52m', steps:[6,7], tests:'212 passing', pr:'not opened', ahead:3, unc:11,
+  goal:'Move session auth from cookies to JWT with refresh tokens',
+  a:'Wants to run the dev database migration',
+  cmd:'bun run db:migrate --env=dev', cwd:'~/.tend/worktrees/auth-refactor', effect:'Creates the refresh_tokens table in your local dev database. A down migration exists.',
+  pattern:'bun run db:migrate --env=dev*',
+  done:[['JWT access + refresh tokens','src/auth/jwt.ts'],['Legacy cookies valid for 7 days, as you asked','prompt 14:02'],['All auth tests pass','bun test · 14:39'],['Migration 0042 written','db/migrations']],
+  next:['Run the migration','Smoke-test login and refresh','Open a pull request'], fail:[],
+  you:['"Keep old cookies valid for 7 days"','"Don’t touch the admin panel"']},
+ {id:'cost', n:'cost-report', p:3, st:'perm', risk:'high', wait:'1m', run:'4m', steps:[2,5], tests:'none', pr:'not opened', ahead:0, unc:2,
+  goal:'Build a report of last month’s AWS bill by service',
+  a:'Wants to delete an S3 prefix recursively',
+  cmd:'aws s3 rm s3://acme-reports/tmp/ --recursive', cwd:'~/.tend/worktrees/cost-report', effect:'Deletes every object under tmp/ in the shared acme-reports bucket. This can’t be undone from here.',
+  done:[['Pulled cost data for September','aws ce · 14:50']], next:['Clean up temporary exports','Render the report'], fail:[], you:['"Put the report in docs/costs"']},
+ {id:'charts', n:'charts', p:1, st:'question', wait:'3m', run:'22m', steps:[1,5], tests:'48 passing', pr:'not opened', ahead:1, unc:3,
+  goal:'KPI page with throughput and uptime charts',
+  a:'Asks which chart library to use',
+  q:'Which chart library should I use for the KPI page?', why:'Your CLAUDE.md says to keep the bundle small.',
+  opts:[['Recharts','96 kB · already installed, least new code'],['uPlot','45 kB · fastest, needs more wrapper code'],['ECharts','320 kB · most features, biggest bundle']],
+  done:[['Layout and data hooks for the KPI page','src/pages/kpi.tsx'],['Compared three libraries against the bundle budget','CLAUDE.md']], next:['Build the two charts','Add loading and empty states'], fail:[], you:['"Throughput and uptime, last 30 days"']},
+ {id:'tf', n:'terraform-upgrade', p:3, st:'stuck', wait:'21m', run:'48m', steps:[4,8], tests:'plan failing', pr:'not opened', ahead:2, unc:6,
+  goal:'Upgrade the AWS provider from 4 to 5 across all modules',
+  a:'Same provider error 3 times in 21 min',
+  err:'no available releases match "~> 4.0, >= 5.0"', why:'modules/legacy-vpc still pins aws ~> 4.0. Each retry loosens modules/network instead, so the conflict never changes.', fix:'Update modules/legacy-vpc/versions.tf to aws ~> 5.0, then run terraform init -upgrade',
+  done:[['Upgraded 4 of 8 modules','modules/*'],['Plan passes for network and iam','terraform plan · 14:20']], fail:[['Same init error three times','terraform init · 14:52']], next:['Fix the remaining pin','Run plan for all modules'], you:['"Don’t apply anything, plan only"']},
+ {id:'a11y', n:'a11y-pass', p:1, st:'conflict', wait:'4m', run:'38m', steps:[3,9], tests:'48 passing', pr:'not opened', ahead:2, unc:5,
+  goal:'Fix keyboard navigation and contrast issues from the audit',
+  a:'Editing Table.tsx, which dark-mode also changed',
+  other:'dark-mode', file:'src/components/Table.tsx', why:'Both sessions changed lines 40–88. Merging later will conflict.',
+  done:[['Focus rings on all buttons','src/components/Button.tsx'],['Contrast fixes in the sidebar','src/styles/sidebar.css']], fail:[], next:['Keyboard navigation for tables','Skip-to-content link'], you:[]},
+ {id:'sync', n:'offline-sync', p:2, st:'review', wait:'12m', run:'1h 10m', steps:[5,5], tests:'318 passing', pr:'ready to open', ahead:6, unc:0,
+  goal:'Queue orders offline and sync them on reconnect',
+  a:'Done · +412 −38 in 9 files',
+  why:'Orders queue in IndexedDB and retry with backoff. 14 new tests cover queueing, retries and conflicts.',
+  done:[['IndexedDB queue with retry and backoff','src/sync/queue.ts'],['14 new tests, all passing','bun test · 14:46'],['Typecheck clean','tsc · 14:46']], fail:[], next:['Review the diff','Open a pull request'], you:['"Must survive an app restart"']},
+ {id:'rate', n:'rate-limits', p:0, st:'work', run:'14m', steps:[2,5], tests:'8 passing', pr:'not opened', ahead:1, unc:3, goal:'Per-tenant rate limiting on public endpoints', a:'Editing src/middleware/limit.ts', done:[['Middleware skeleton','src/middleware/limit.ts'],['8 tests passing','bun test · 14:51']], next:['Choose a storage backend','Wire into the router'], fail:[], you:[]},
+ {id:'flaky', n:'flaky-tests', p:0, st:'work', run:'3m', steps:[3,5], tests:'rerunning', pr:'not opened', ahead:0, unc:2, goal:'Find and fix the 4 flaky integration tests', a:'Rerunning the suite 20 times', done:[['Found a race in the queue worker','src/queue/worker.ts']], next:['Confirm the fix holds over 20 runs'], fail:[], you:[]},
+ {id:'search', n:'search-index', p:0, st:'work', run:'22m', steps:[3,6], tests:'31 passing', pr:'not opened', ahead:2, unc:4, goal:'Full-text search over orders and customers', a:'Writing src/search/build.ts', done:[['Schema and tokenizer','src/search/schema.ts']], next:['Incremental updates','Query API'], fail:[], you:[]},
+ {id:'docs', n:'openapi-docs', p:0, st:'idle', run:'idle 2d', steps:[4,5], tests:'—', pr:'#211 merged', ahead:0, unc:0, goal:'Generate an OpenAPI spec from route handlers', a:'Idle · 3 routes still need examples', done:[['Spec generated for 41 routes','openapi.yaml']], next:['Add examples for 3 routes'], fail:[], you:[]},
+ {id:'dark', n:'dark-mode', p:1, st:'work', run:'31m', steps:[7,10], tests:'48 passing', pr:'not opened', ahead:4, unc:9, goal:'Theme tokens and dark mode across all pages', a:'Editing src/styles/tokens.css', done:[['Tokens for surfaces and text','commit 3f2a91c']], next:['Charts and tables'], fail:[], you:[]},
+ {id:'i18n', n:'i18n', p:1, st:'work', run:'17m', steps:[2,6], tests:'48 passing', pr:'not opened', ahead:1, unc:12, goal:'Move UI strings into message files', a:'Extracted 41 of 120 strings', done:[['Message file structure','src/i18n/en.json']], next:['Remaining 79 strings'], fail:[], you:[]},
+ {id:'push', n:'push-notifs', p:2, st:'work', run:'5m', steps:[1,6], tests:'—', pr:'not opened', ahead:0, unc:1, goal:'APNs and FCM push for order status changes', a:'Reading the FCM docs', done:[], next:['Server-side sender','Device registration'], fail:[], you:[]},
+ {id:'e2e', n:'e2e-checkout', p:2, st:'work', run:'9m', steps:[2,4], tests:'6 passing', pr:'not opened', ahead:1, unc:2, goal:'End-to-end tests for checkout', a:'Writing e2e/checkout.spec.ts', done:[['Happy-path checkout test','e2e/checkout.spec.ts']], next:['Payment failure cases'], fail:[], you:[]},
+ {id:'dns', n:'dns-cleanup', p:3, st:'idle', run:'idle 5h', steps:[3,3], tests:'—', pr:'#88 merged', ahead:0, unc:0, goal:'Remove stale DNS records', a:'Idle · finished and merged', done:[['Removed 14 stale records','#88']], next:[], fail:[], you:[]},
+];
+/* context window + prompt cache per session (from Claude Code's status line data) */
+const CTX = {
+  auth:[54,108,200,{left:2,re:118}], cost:[12,24,200,{left:4,re:22}], charts:[31,62,200,{left:1,re:61}], tf:[83,166,200,{left:0,re:164}],
+  a11y:[47,94,200,{left:4,re:90}], sync:[66,132,200,{left:3,re:128}], rate:[38,76,200,{left:5,re:70}], flaky:[22,44,200,{left:5,re:40}],
+  search:[19,38,200,{left:5,re:35}, 'Compacted at 14:20 · 91% → 17%'], docs:[70,140,200,{left:0,re:138}], dark:[88,176,200,{left:5,re:170}],
+  i18n:[61,610,1000,{left:5,re:600}], push:[9,18,200,{left:5,re:15}], e2e:[27,54,200,{left:5,re:50}], dns:[44,88,200,{left:0,re:85}],
+};
+/* accounts: one per CLAUDE_CONFIG_DIR, each with its own limits */
+const ACC = [
+  {id:'work', name:'Work', dir:'~/.claude', col:'#8b9cff', five:{used:71, elapsed:.60, resetIn:'1h 58m', hitAt:'16:38', resetAt:'17:00'}, week:{used:41, elapsed:.52, resetIn:'3d 6h'},
+   burn:[['dark-mode',31,'dark'],['i18n',22,'i18n'],['terraform-upgrade',14,'tf']]},
+  {id:'pers', name:'Personal', dir:'~/.claude-personal', col:'#e79bd3', five:{used:23, elapsed:.35, resetIn:'3h 15m'}, week:{used:12, elapsed:.52, resetIn:'3d 6h'},
+   burn:[['push-notifs',9,'push'],['cost-report',4,'cost']]},
+];
+const ACCT = {cost:'pers', push:'pers', dns:'pers', docs:'pers'};
+const acctOf = s => ACC.find(a=>a.id===(ACCT[s.id]||'work'));
+const LIM = ACC[0];
+function zone(u,e){ const proj=u/100/Math.max(e,.05); if(u>=90||proj>=1.15) return 'hot'; if(u>=75||proj>=1.0) return 'warn'; if(proj<.75) return 'chill'; return 'ok'; }
+function ring(p){ const r=5.5,c=2*Math.PI*r, col = p>=85?'var(--stuck)':p>=70?'var(--need)':'var(--fg3)';
+  return `<svg class="cring" viewBox="0 0 14 14" aria-label="context ${p}%"><circle cx="7" cy="7" r="${r}" fill="none" stroke="var(--line2)" stroke-width="2"/><circle cx="7" cy="7" r="${r}" fill="none" stroke="${col}" stroke-width="2" stroke-dasharray="${c*p/100} ${c}" transform="rotate(-90 7 7)" stroke-linecap="round"/></svg>`; }
+const ZCOL = z=>({chill:'var(--work)',ok:'var(--fg2)',warn:'var(--need)',hot:'var(--stuck)'}[z]);
+function usagePill(){
+  $('usage').innerHTML = ACC.map(a=>{ const f=a.five, z=zone(f.used,f.elapsed);
+    return `<span class="acc" title="${a.name} · 5-hour window"><i class="adot" style="background:${a.col}"></i><span class="ubar"><i style="width:${f.used}%;background:${ZCOL(z)}"></i><u style="left:${f.elapsed*100}%"></u></span><b class="z-${z}">${f.used}%</b></span>`; }).join('<span class="usep"></span>');
+}
+function popRender(){
+  const best = [...ACC].sort((a,b)=>a.five.used-b.five.used)[0];
+  $('pop').innerHTML = ACC.map(a=>{
+    const f=a.five, w=a.week, zf=zone(f.used,f.elapsed), zw=zone(w.used,w.elapsed);
+    const txt = zf==='hot'||zf==='warn' ? `At this pace ${a.name} reaches its limit around <b>${f.hitAt}</b>, 22 min before it resets at ${f.resetAt}.` : `On pace · resets in ${f.resetIn}.`;
+    const n = S.filter(s=>acctOf(s)===a && s.st!=='idle').length;
+    return `<section class="accsec">
+      <div class="acch"><i class="adot" style="background:${a.col}"></i><b>${a.name}</b><span>${a.dir} · ${n} active</span></div>
+      <div class="win"><div class="h"><b class="z-${zf}">${f.used}%</b>5-hour<span class="r">resets in ${f.resetIn}</span></div>
+        <div class="wbar"><i style="width:${f.used}%;background:${ZCOL(zf)}"></i><u style="left:${f.elapsed*100}%"></u></div><p>${txt}</p></div>
+      <div class="win"><div class="h"><b class="z-${zw}" style="font-size:15px">${w.used}%</b>Weekly<span class="r">resets in ${w.resetIn}</span></div>
+        <div class="wbar thin"><i style="width:${w.used}%;background:${ZCOL(zw)}"></i><u style="left:${w.elapsed*100}%"></u></div></div>
+      <div class="burn"><h6>Using the most, last 30 min</h6>${a.burn.map(b=>`<button onclick="choose('${b[2]}');togglePop()"><span>${b[0]}</span><span class="bb"><i style="width:${b[1]*2.5}%"></i></span><span class="pc">${b[1]}%</span></button>`).join('')}</div>
+    </section>`; }).join('') +
+    `<div class="suggest"><p>New sessions default to <b><i class="adot" style="background:${best.col}"></i>${best.name}</b>, which has the most room left.</p><button class="btn" onclick="toast('Default account: per project, or most headroom')">Change</button></div>
+     <div class="popfoot">From each account's Claude Code status data. Ticks mark even pace. No extra API calls.</div>`;
+}
+function togglePop(){ const p=$('pop'); p.hidden=!p.hidden; if(!p.hidden) popRender(); }
+document.addEventListener('mousedown',e=>{ if(!$('pop').hidden && !e.target.closest('#pop,#usage')) $('pop').hidden=true; });
+
+const attn = s => s.st in BUCKET;
+let sel='auth', mode='you', palIdx=0, typing=false, scopeOpen=false, confirmHigh=false;
+const $ = id => document.getElementById(id);
+const pri = (a,b) => (RANK[a.st]-RANK[b.st]) || ((b.risk==='high')-(a.risk==='high')) || (parseInt(b.wait)-parseInt(a.wait));
+
+/* ---------- terminal content ---------- */
+function term(s){
+  const T = {
+  auth:`<span class="u">› keep old cookies valid for 7 days so nobody gets logged out</span>
+
+⏺ Got it. A valid legacy cookie will be accepted and swapped for a JWT pair.
+
+<span class="k">⏺ Update</span>(src/auth/middleware.ts)
+<span class="g">  ⎿  18 additions, 2 removals</span>
+
+<span class="k">⏺ Bash</span>(bun test src/auth)
+<span class="g">  ⎿  212 pass · 0 fail · 4.1s</span>
+
+⏺ Tests pass. The last step is the refresh-token migration.
+
+<span class="k">⏺ Bash</span>(bun run db:migrate --env=dev)
+<span class="box">Apply migration 0042_refresh_tokens.sql?
+
+<span class="s">❯ 1. Yes</span>
+  2. Yes, and don't ask again for this command
+  3. No, and tell Claude what to do instead</span>`,
+  cost:`<span class="k">⏺ Bash</span>(aws ce get-cost-and-usage --time-period 2026-09-01,2026-10-01)
+<span class="g">  ⎿  Wrote 1,284 rows to tmp/ce-2026-09.json</span>
+
+⏺ Before rendering, I'll clear old temporary exports.
+
+<span class="k">⏺ Bash</span>(aws s3 rm s3://acme-reports/tmp/ --recursive)
+<span class="box">Run this command?
+
+<span class="s">❯ 1. Yes</span>
+  2. Yes, and don't ask again for this command
+  3. No, and tell Claude what to do instead</span>`,
+  charts:`<span class="u">› build the KPI page with throughput and uptime charts</span>
+
+⏺ I compared three libraries against the bundle budget in CLAUDE.md.
+
+<span class="box">Which chart library should I use?
+
+<span class="s">❯ 1. Recharts</span>    96 kB, already installed
+  2. uPlot       45 kB, fastest, more code
+  3. ECharts    320 kB, most features
+  4. Type something else</span>`,
+  tf:`<span class="k">⏺ Bash</span>(terraform init -upgrade)
+<span class="e">  ⎿  Error: no available releases match "~> 4.0, >= 5.0"</span>
+
+⏺ I'll loosen the constraint in modules/network and retry.
+
+<span class="k">⏺ Update</span>(modules/network/versions.tf)
+<span class="k">⏺ Bash</span>(terraform init -upgrade)
+<span class="e">  ⎿  Error: no available releases match "~> 4.0, >= 5.0"</span>
+
+⏺ Same error. I'll loosen the constraint in modules/network and retry.`,
+  sync:`<span class="k">⏺ Bash</span>(bun test)
+<span class="g">  ⎿  318 pass · 0 fail</span>
+
+<span class="k">⏺ Bash</span>(bun run typecheck)
+<span class="g">  ⎿  no errors</span>
+
+⏺ Done. Orders now queue in IndexedDB while offline and retry with backoff on reconnect. 14 new tests cover queueing, retries and conflicts.`,
+  };
+  if(s.id==='rate' && s.st==='question') return `<span class="k">⏺ Update</span>(src/middleware/limit.ts)
+<span class="g">  ⎿  42 additions</span>
+
+<span class="box">Use Redis or in-memory buckets for the limiter?
+
+<span class="s">❯ 1. Redis</span>       shared across instances
+  2. In-memory   simpler, per instance</span>`;
+  return T[s.id] || `<span class="u">› ${s.goal}</span>
+
+<span class="k">⏺ Read</span>(CLAUDE.md)
+<span class="g">  ⎿  Read 84 lines</span>
+
+⏺ Plan noted. Step ${s.steps[0]+1} of ${s.steps[1]}.
+
+<span class="k">⏺ Working</span>(${s.a})
+<span class="g">  ⎿  running</span> <span class="cursor"></span>`;
+}
+
+/* ---------- fleet strip ---------- */
+function strip(){
+  $('strip').innerHTML = P.map((p,i)=>`<div class="sg"><span class="pl">${p}</span><div class="ts">${S.filter(s=>s.p===i).sort(pri).map(s=>`<button class="tile ${s.st} ${s.id===sel?'sel':''}" data-tip="<b>${s.n}</b> · ${p} · ${acctOf(s).name}<br>${KIND[s.st]}${s.wait&&attn(s)?' · waiting '+s.wait:''}<br>${s.a}" onclick="choose('${s.id}')" aria-label="${s.n}: ${KIND[s.st]}">${I[s.st]}</button>`).join('')}</div></div>`).join('');
+  const you=S.filter(attn).length, w=S.filter(s=>s.st==='work').length, idle=S.filter(s=>s.st==='idle').length;
+  $('summary').innerHTML = you ? `<span><b>${you} for you</b></span><span>${w} working</span><span>${idle} idle</span>` : `<span>All clear · ${w} working</span>`;
+  $('cYou').textContent = you || ''; $('cAll').textContent = S.length;
+}
+
+/* ---------- list ---------- */
+function row(s, showProject){
+  const risk = s.risk ? `<span class="risk ${s.risk}">${s.risk==='high'?'High risk':s.risk==='med'?'Medium':'Low'}</span>` : '';
+  const right = attn(s) ? s.wait : `${s.steps[0]}/${s.steps[1]}`;
+  const c = CTX[s.id]; const cr = c && c[0]>=60 ? `<span data-tip="Context ${c[0]}% · ${c[1]}k of ${c[2]}k tokens">${ring(c[0])}</span>` : '';
+  return `<button class="row ${attn(s)?'attn':''} ${s.id===sel?'on':''}" onclick="choose('${s.id}')"><span class="g ${s.st}">${I[s.st]}</span><span class="n"><i class="adot" style="background:${acctOf(s).col}" data-tip="Account: ${acctOf(s).name}"></i>${s.n}${showProject?` <span>· ${P[s.p]}</span>`:''}${risk}</span><span class="t num">${cr}${right}</span><span class="a">${attn(s)?KIND[s.st]+': ':''}${s.a}</span></button>`;
+}
+function list(){
+  let h='';
+  if(mode==='you'){
+    const q=S.filter(attn).sort(pri);
+    if(!q.length) h=`<div class="empty"><b>Inbox zero</b>Nothing needs a decision. You’ll get a notification when something does.</div>`;
+    [['blk','Blocked on you','Agents are paused until you decide'],['prob','Problems','Still running, but going wrong'],['rev','Ready for review','Finished, waiting for your review']].forEach(([b,label,hint])=>{
+      const items=q.filter(s=>BUCKET[s.st]===b); if(!items.length) return;
+      h+=`<div class="gh ${b}" title="${hint}">${label}<span class="r">${items.length}</span></div>`+items.map(s=>row(s,true)).join('');
+    });
+  } else {
+    P.forEach((p,i)=>{
+      const ss=S.filter(s=>s.p===i).sort(pri), n=ss.filter(attn).length;
+      h+=`<div class="gh">${p}<span class="r">${n?`<span style="color:var(--need)">${n} for you</span> · `:''}${ss.length}</span></div>`+ss.map(s=>row(s,false)).join('');
+    });
+  }
+  $('list').innerHTML=h;
+}
+
+/* ---------- detail ---------- */
+function detail(){
+  const s=S.find(x=>x.id===sel);
+  const testsCls = /fail/.test(s.tests)?'bad':/passing/.test(s.tests)?'okc':'';
+  $('dh').innerHTML = `<div class="l1"><span class="g ${s.st}" style="color:var(--${s.st==='perm'||s.st==='question'?'need':s.st==='conflict'?'stuck':s.st==='idle'?'fg3':s.st})">${I[s.st]}</span><h1>${s.n}</h1><span class="goal">${s.goal}</span>
+    <span class="r"><button class="btn ghost" onclick="files()">Files <kbd>F</kbd></button><button class="btn ghost">Interrupt</button><button class="btn ${s.st==='review'?'pri':''}" onclick="commitFlow('${s.id}')">Review &amp; commit</button></span></div>
+    <div class="facts"><span><i class="adot" style="background:${acctOf(s).col}"></i>${acctOf(s).name}</span><span>${P[s.p]}</span><span><code>tend/${s.n}</code> ↑${s.ahead} ↓0</span><span>worktree <code>${s.cwd||'~/.tend/worktrees/'+s.n}</code></span><span>step ${s.steps[0]} of ${s.steps[1]}</span><span class="${testsCls}">tests ${s.tests}</span><span class="${s.unc?'warn':''}">${s.unc} uncommitted</span><span>PR ${s.pr}</span><span>running ${s.run}</span>${ctxFact(s)}</div>`;
+  decision(s); briefing(s);
+  $('tout').innerHTML=term(s);
+  $('tree').innerHTML = s.id==='a11y'
+    ? `<div class="dir">src/components</div><button class="f on">Table.tsx<span class="ov">also in dark-mode</span><span class="s m">+31 −12</span></button><button class="f">Button.tsx<span class="s m">+6 −2</span></button><div class="dir">src/styles</div><button class="f">sidebar.css<span class="s m">+9 −9</span></button>`
+    : `<div class="dir">src/auth</div><button class="f on">middleware.ts<span class="s m">+18 −2</span></button><button class="f">refresh.ts<span class="s a">new</span></button><button class="f">jwt.ts<span class="s a">new</span></button><button class="f">session.ts<span class="s m">+7 −31</span></button><div class="dir">db/migrations</div><button class="f">0042_refresh_tokens.sql<span class="s a">new</span></button><div class="dir">tests · 5 files</div>`;
+}
+
+function ctxFact(s){
+  const c=CTX[s.id]; if(!c) return '';
+  const cls = c[0]>=85?'bad':c[0]>=70?'warn':'';
+  const cache = c[3].left>0 ? `cache warm · ${c[3].left}m left` : 'cache cold';
+  return `<span class="${cls}">${ring(c[0])}context ${c[0]}% · ${c[1]}k / ${c[2]>=1000?'1M':c[2]+'k'}</span><span>${cache}</span>`;
+}
+function decision(s){
+  const d=$('dec');
+  if(!attn(s)){ d.hidden=true; return; }
+  d.hidden=false; d.className='dec '+(s.st==='perm'||s.st==='question'?'':s.st);
+  let body='';
+  if(s.st==='perm'){
+    const high=s.risk==='high';
+    body=`<div class="cmd">${s.cmd}</div>
+      <dl class="ctx"><dt>Runs in</dt><dd><code>${s.cwd}</code></dd><dt>Repository</dt><dd>${P[s.p]} · branch <code>tend/${s.n}</code></dd><dt>Effect</dt><dd>${s.effect}</dd><dt>Risk</dt><dd><span class="risk ${s.risk}" style="margin:0">${high?'High · deletes data outside this repo':'Medium · changes local state, reversible'}</span></dd></dl>
+      <div class="scope" id="scope" hidden>Always allow <code>${s.pattern||''}</code> in <b>${P[s.p]}</b> only. Saved as a Claude Code permission rule. <button class="btn" onclick="saveRule('${s.id}')">Save rule</button><button class="btn ghost" onclick="toggleScope()">Cancel</button></div>
+      <div class="acts">${high
+        ? (confirmHigh ? `<button class="btn danger" onclick="resolve('${s.id}','Allowed')">Confirm: delete tmp/ objects</button><button class="btn" onclick="confirmHigh=false;detail()">Cancel</button>`
+                       : `<button class="btn" onclick="confirmHigh=true;detail()">Allow…</button><button class="btn pri" onclick="resolve('${s.id}','Denied')">Deny <kbd>D</kbd></button>`)
+        : `<button class="btn pri" onclick="resolve('${s.id}','Allowed')">Allow once <kbd>A</kbd></button><button class="btn" onclick="toggleScope()">Always allow…</button><button class="btn" onclick="resolve('${s.id}','Denied')">Deny <kbd>D</kbd></button>`}
+        <span class="note">${high?'Never auto-approved · no keyboard shortcut for Allow':'Answered through Claude Code’s permission hook'}</span></div>`;
+  } else if(s.st==='question'){
+    body=`<div style="color:var(--fg2);font-size:12.5px">${s.why}</div><div class="opts">${s.opts.map((o,i)=>`<button class="optb" onclick="resolve('${s.id}','Answered ${o[0]}')"><kbd>${i+1}</kbd><b>${o[0]}</b><span>${o[1]}</span></button>`).join('')}</div>`;
+  } else if(s.st==='stuck'){
+    body=`<div class="cmd">${s.err}</div><dl class="ctx"><dt>Likely cause</dt><dd>${s.why}</dd><dt>Suggested fix</dt><dd>${s.fix}</dd></dl><div class="acts"><button class="btn pri" onclick="resolve('${s.id}','Sent the suggested fix')">Send suggested fix</button><button class="btn" onclick="focusTerm()">Answer in terminal</button><button class="btn" onclick="resolve('${s.id}','Stopped')">Stop session</button></div>`;
+  } else if(s.st==='conflict'){
+    body=`<dl class="ctx"><dt>File</dt><dd><code>${s.file}</code></dd><dt>Also changed by</dt><dd><a class="ev" onclick="choose('dark')">${s.other}</a> (web-dashboard)</dd><dt>Why it matters</dt><dd>${s.why}</dd></dl><div class="acts"><button class="btn pri" onclick="resolve('${s.id}','a11y-pass paused until dark-mode merges')">Pause until dark-mode merges</button><button class="btn" onclick="resolve('${s.id}','Told a11y-pass to skip Table.tsx')">Tell it to skip this file</button><button class="btn ghost" onclick="resolve('${s.id}','Overlap accepted')">Ignore</button></div>`;
+  } else if(s.st==='review'){
+    body=`<div style="color:var(--fg2);font-size:12.5px">${s.why}</div><div class="acts"><button class="btn pri" onclick="wide();files(true)">Review diff <kbd>R</kbd></button><button class="btn" onclick="commitFlow('${s.id}')">Commit &amp; open PR…</button><button class="btn ghost" onclick="focusTerm()">Ask for changes</button></div>`;
+  }
+  const title = s.st==='perm'?'Wants to run a command':s.st==='question'?s.q:s.st==='stuck'?'Repeating the same failing fix':s.st==='conflict'?'Two sessions are editing the same file':'Finished and ready for your review';
+  const c=CTX[s.id];
+  const hint = c && c[3].left>0 && c[3].left<=3 && s.st!=='review' ? `<div class="cachehint">⏱ <span>Prompt cache goes cold in <b>${c[3].left} min</b>. Answering after that re-reads about ${c[3].re}k tokens.</span></div>` : '';
+  d.innerHTML=`<div class="h"><span class="k">${KIND[s.st]}</span>${title}<span class="w">waiting ${s.wait}</span></div>${body}${hint}`;
+}
+
+function briefing(s){
+  const b=$('brief');
+  const li=(arr,m,cls)=>arr.map(x=>`<li><span class="m ${cls||''}">${m}</span><span>${x[0]} <a class="ev" onclick="toast('Jumps to ${x[1]}')">${x[1]}</a></span></li>`).join('');
+  const one = `${s.steps[0]} of ${s.steps[1]} steps · tests ${s.tests} · ${s.done.length?s.done[s.done.length-1][0]:'just started'}`;
+  b.open = attn(s) || b._forceOpen;
+  b.innerHTML=`<summary><span class="lab">Briefing</span><span class="one">${one}</span><span class="src">from events and git · no tokens used</span><button class="aisum" onclick="event.preventDefault();toast('AI summary would cost about 2k tokens')">Summarize with AI</button><span class="chev">⌄</span></summary>
+   ${advice(s)}<div class="bgrid">
+     <div><h4>Done</h4><ul>${CTX[s.id]&&CTX[s.id][4]?`<li><span class="m o">↺</span><span>${CTX[s.id][4]}</span></li>`:''}${li(s.done,'✓')}${li(s.fail,'✕','x')||''}${!s.done.length&&!s.fail.length?'<li><span class="m o">·</span><span>Nothing yet</span></li>':''}</ul></div>
+     <div><h4>Next (from its todo list)</h4><ul>${s.next.map(x=>`<li><span class="m o">○</span><span>${x}</span></li>`).join('')||'<li><span class="m o">·</span><span>Nothing planned</span></li>'}</ul></div>
+     <div><h4>Your instructions</h4><ul>${s.you.map(x=>`<li><span class="m o">›</span><span>${x}</span></li>`).join('')||'<li><span class="m o">·</span><span>Only the first prompt</span></li>'}</ul></div>
+   </div>`;
+}
+
+function advice(s){
+  const c=CTX[s.id]; if(!c || c[0]<80) return '';
+  return `<div class="advice">${ring(c[0])}<span><b>Context ${c[0]}%.</b> Claude will auto-compact soon and may lose detail. Compacting at a clean break keeps more of what matters.</span><button class="btn" onclick="toast('/compact will be sent when ${s.n} next stops')">Compact at next stop</button></div>`;
+}
+/* ---------- actions ---------- */
+function all(){ strip(); list(); detail(); usagePill(); }
+function choose(id){ sel=id; confirmHigh=false; scopeOpen=false; leaveTerm(); all(); }
+function view(v){ mode=v; document.querySelectorAll('#seg button').forEach(b=>b.classList.toggle('on',b.dataset.v===v)); list(); }
+function resolve(id,what){
+  const s=S.find(x=>x.id===id);
+  toast(`${what} · ${s.n}`);
+  s.st= what==='Stopped' ? 'idle' : 'work'; s.risk=null; s.wait=null;
+  s.a = id==='sync' ? 'Opening pull request #218' : what.startsWith('Answered') ? what.replace('Answered','Using') : 'Continuing';
+  confirmHigh=false;
+  const nx=S.filter(attn).sort(pri)[0]; if(nx) sel=nx.id;
+  all();
+}
+function toggleScope(){ const el=$('scope'); if(el) el.hidden=!el.hidden; }
+function saveRule(id){ toast('Rule saved · bun run db:migrate --env=dev* in fleet-api'); resolve(id,'Allowed'); }
+function commitFlow(id){ toast('Opens the full diff with file checkboxes before committing'); wide(); files(true); }
+function next(d){ const q=S.filter(attn).sort(pri); if(!q.length) return; const i=q.findIndex(x=>x.id===sel); sel=q[(i+d+q.length)%q.length].id; confirmHigh=false; all(); }
+function files(force){ const w=$('work'); if(force===true) w.classList.remove('nofiles'); else w.classList.toggle('nofiles'); }
+function wide(){ $('work').classList.toggle('wide'); $('work').style.removeProperty('--fw'); }
+function theme(){ const r=document.documentElement, dark = r.dataset.theme ? r.dataset.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches; r.dataset.theme = dark?'light':'dark'; }
+function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2000); }
+
+/* focus safety: typing in the terminal pauses single-key shortcuts */
+function focusTerm(){ typing=true; $('term').classList.add('focused'); $('typing').hidden=false; $('keys').hidden=true; $('tout').focus(); }
+function leaveTerm(){ typing=false; $('term').classList.remove('focused'); $('typing').hidden=true; $('keys').hidden=false; }
+$('tout').addEventListener('mousedown', focusTerm);
+
+/* resizable diff */
+(()=>{ const h=$('handle'), w=$('work'); let drag=false;
+  h.addEventListener('mousedown',e=>{drag=true;e.preventDefault();});
+  addEventListener('mousemove',e=>{ if(!drag) return; const r=w.getBoundingClientRect(); const px=Math.min(Math.max(r.right-e.clientX,260),r.width-320); w.classList.remove('wide'); w.style.setProperty('--fw',px+'px'); });
+  addEventListener('mouseup',()=>drag=false);
+})();
+
+/* tooltips for the fleet strip */
+addEventListener('mouseover',e=>{ const t=e.target.closest('[data-tip]'), tip=$('tip'); if(!t){tip.classList.remove('show');return;} tip.innerHTML=t.dataset.tip; const r=t.getBoundingClientRect(); tip.style.left=Math.min(r.left,innerWidth-270)+'px'; tip.style.top=(r.bottom+8)+'px'; tip.classList.add('show'); });
+
+/* command palette */
+function palItems(){
+  const q=$('palIn').value.toLowerCase();
+  const sessions=S.filter(s=>(s.n+' '+P[s.p]+' '+s.goal).toLowerCase().includes(q)).sort(pri).map(s=>({label:s.n, meta:KIND[s.st], icon:I[s.st], run:()=>choose(s.id)}));
+  const acts=[['Next decision',()=>next(1)],['New session in fleet-api',()=>toast('New session started')],['Expand diff',wide],['Toggle files panel',files],['Switch theme',theme]].filter(a=>a[0].toLowerCase().includes(q)).map(a=>({label:a[0],run:a[1]}));
+  return {sessions,acts};
+}
+function palRender(){
+  const {sessions,acts}=palItems(), flat=[...sessions,...acts]; palIdx=Math.max(0,Math.min(palIdx,flat.length-1));
+  let i=0; const item=x=>`<button class="pi ${i++===palIdx?'on':''}" onclick="palRun(${i-1})">${x.icon||''}${x.label}${x.meta?`<span class="m">${x.meta}</span>`:''}</button>`;
+  $('pl').innerHTML=(sessions.length?`<div class="pgh">Sessions</div>`+sessions.map(item).join(''):'')+(acts.length?`<div class="pgh">Actions</div>`+acts.map(item).join(''):'');
+  $('pl')._flat=flat;
+}
+function palRun(i){ const f=$('pl')._flat[i]; closePal(); f&&f.run(); }
+function openPal(){ $('veil').hidden=false; $('palIn').value=''; palIdx=0; palRender(); setTimeout(()=>$('palIn').focus(),0); }
+function closePal(){ $('veil').hidden=true; }
+
+/* a new question arrives while you work */
+function hideNotif(){ $('notif').classList.remove('show'); }
+$('nIc').innerHTML=I.question;
+setTimeout(()=>{ const s=S.find(x=>x.id==='rate'); Object.assign(s,{st:'question',wait:'now',a:'Asks Redis or in-memory buckets',q:'Use Redis or in-memory buckets for the limiter?',why:'Redis shares limits across instances. In-memory is simpler, but each instance keeps its own limits.',opts:[['Redis','Shared limits across instances · needs the Redis service'],['In-memory','Simpler · limits are per instance']]}); all(); $('notif').classList.add('show'); setTimeout(hideNotif,6000); }, 10000);
+
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'){ e.preventDefault(); $('veil').hidden?openPal():closePal(); return; }
+  if(!$('veil').hidden){
+    if(e.key==='Escape') closePal();
+    if(e.key==='ArrowDown'){palIdx++;palRender();e.preventDefault();}
+    if(e.key==='ArrowUp'){palIdx=Math.max(0,palIdx-1);palRender();e.preventDefault();}
+    if(e.key==='Enter') palRun(palIdx);
+    return;
+  }
+  if(typing){ if(e.key==='Escape') leaveTerm(); return; }
+  if(e.target.tagName==='INPUT') return;
+  if(e.key==='j') next(1); if(e.key==='k') next(-1); if(e.key==='f') files();
+  const s=S.find(x=>x.id===sel); if(!s||!attn(s)) return;
+  if(s.st==='perm'){ if(e.key==='a' && s.risk!=='high') resolve(s.id,'Allowed'); if(e.key==='d') resolve(s.id,'Denied'); }
+  if(s.st==='question' && /^[1-9]$/.test(e.key) && s.opts[+e.key-1]) resolve(s.id,'Answered '+s.opts[+e.key-1][0]);
+  if(s.st==='review' && e.key==='r'){ wide(); files(true); }
+});
+all(); if(location.hash==='#pop') setTimeout(togglePop,0);
+</script>
+</body>
+</html>

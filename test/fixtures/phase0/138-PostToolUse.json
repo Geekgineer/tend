@@ -1,0 +1,26 @@
+{
+  "session_id": "00000000-0000-0000-0000-000000000000",
+  "transcript_path": "/HOME/.claude/projects/-HOME-x/00000000-0000-0000-0000-000000000000.jsonl",
+  "cwd": "/REPO",
+  "scratchpad_dir": "/REPO",
+  "prompt_id": "00000000-0000-0000-0000-000000000000",
+  "permission_mode": "auto",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "ls -la",
+    "description": "List files in the current directory"
+  },
+  "tool_response": {
+    "stdout": "total 16\ndrwxr-xr-x@  6 user  staff  192 Oct 28 15:23 .\ndrwxr-xr-x@ 17 user  staff  544 Oct 28 15:22 ..\ndrwxr-xr-x@  3 user  staff   96 Oct 28 15:20 .claude\ndrwxr-xr-x@ 12 user  staff  384 Oct 28 15:20 .git\n-rw-r--r--@  1 user  staff    2 Oct 28 15:20 README.md\n-rw-r--r--@  1 user  staff    5 Oct 28 15:23 auto.txt",
+    "stderr": "",
+    "interrupted": false,
+    "isImage": false,
+    "noOutputExpected": false
+  },
+  "tool_use_id": "toolu_01EQnrfndEtr75WZwZ38XvgN",
+  "duration_ms": 168
+}

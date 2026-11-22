@@ -1,0 +1,16 @@
+{
+  "session_id": "00000000-0000-0000-0000-000000000000",
+  "transcript_path": "/HOME/.claude/projects/-HOME-x/00000000-0000-0000-0000-000000000000.jsonl",
+  "cwd": "/REPO",
+  "scratchpad_dir": "/REPO",
+  "prompt_id": "00000000-0000-0000-0000-000000000000",
+  "permission_mode": "auto",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "Stop",
+  "stop_hook_active": false,
+  "last_assistant_message": "Done. I created `auto.txt` with `auto`, ran `ls -la`, and then deleted `auto.txt`.\n\nThe `ls -la` output showed `auto.txt` (5 bytes) alongside `.claude/`, `.git/`, and `README.md`.",
+  "background_tasks": [],
+  "session_crons": []
+}

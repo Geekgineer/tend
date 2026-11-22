@@ -1,0 +1,32 @@
+{
+  "session_id": "00000000-0000-0000-0000-000000000000",
+  "transcript_path": "/HOME/.claude/projects/-REPO/00000000-0000-0000-0000-000000000000.jsonl",
+  "cwd": "/REPO",
+  "scratchpad_dir": "/REPO",
+  "prompt_id": "00000000-0000-0000-0000-000000000000",
+  "permission_mode": "default",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Read",
+  "tool_input": {
+    "file_path": "/REPO/.tend/attachments/shot.png"
+  },
+  "tool_response": {
+    "type": "image",
+    "file": {
+      "base64": "iVBORw0KGgoAAAANSUhEUgAAAPAAAAB4CAIAAABD1OhwAAAACXBIWXMAAAABAAAAAQBPJcTWAAABW0lEQVR4nO3SQQkAIADAQAX7t7CmWEIQxl2CPTbPHpCxfgfAS4YmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTYqhSTE0KYYmxdCkGJoUQ5NiaFIMTcoFMhoDgRTdy10AAAAASUVORK5CYII=",
+      "type": "image/png",
+      "originalSize": 425,
+      "dimensions": {
+        "originalWidth": 240,
+        "originalHeight": 120,
+        "displayWidth": 240,
+        "displayHeight": 120
+      }
+    }
+  },
+  "tool_use_id": "toolu_01Ncy1GiHCqpviiURtbZ5d9P",
+  "duration_ms": 5
+}
